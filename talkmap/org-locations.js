@@ -1,22 +1,22 @@
 var addressPoints = [
   [
-    "Conference Proceeding talk 3 on Relevant Topic in Your Field<br />Testing Institute of America 2014 Annual Conference; Los Angeles, CA, USA",
-    34.0536909,
-    -118.242766
+    "Northern high latitude ecosystem carbon balance under climate change<br />EGU General Assembly 2025; Vienna, Austria",
+    48.2083537,
+    16.3725042
   ],
   [
-    "Talk 2 on Relevant Topic in Your Field<br />London School of Testing; London, UK",
-    51.5074456,
-    -0.1277653
+    "Negative AMOC tipping feedback on permafrost carbon in climate mitigation scenarios<br />EGU General Assembly 2025; Vienna, Austria",
+    48.2083537,
+    16.3725042
   ],
   [
-    "Tutorial 1 on Relevant Topic in Your Field<br />UC-Berkeley Institute for Testing Science; Berkeley, CA, USA",
-    37.8708393,
-    -122.272863
+    "Progress developing the PRIME framework and using it in FASTMIP<br />EGU General Assembly 2025; Vienna, Austria",
+    48.2083537,
+    16.3725042
   ],
   [
-    "Talk 1 on Relevant Topic in Your Field<br />UC San Francisco, Department of Testing; San Francisco, CA, USA",
-    37.7879363,
-    -122.4075201
+    "Advancing ProFSea: a spatially-resolved sea-level change emulator for long-term impacts<br />EGU General Assembly 2025; Vienna, Austria",
+    48.2083537,
+    16.3725042
   ]
 ];
