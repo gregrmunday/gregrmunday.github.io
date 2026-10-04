@@ -6,14 +6,13 @@ activities:
     description: >-
       Lifelong pursuit of getting tubed.
     photos:
-      - image: /images/extracurricular/surf.jpg
+      - image: /images/extracurricular/surf.JPG
 
   - title: Outdoors
     description: >-
       Anything ocean, mountains and forests.
     photos: 
-      - image: /images/extracurricular/snowshoe.jpg
-
+      - image: /images/extracurricular/snowshoe.JPG
 
   - title: Music
     description: >-

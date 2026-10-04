@@ -1,7 +1,7 @@
 ---
 layout: onepage
 permalink: /
-title: "Gregory Munday · Climate modelling & machine learning"
+title: "Gregory Munday"
 excerpt: "Climate scientist and DPhil researcher at Oxford, working on hybrid physics and AI for atmospheric modelling."
 author_profile: false
 redirect_from:
@@ -39,7 +39,7 @@ redirect_from:
 <section class="home-section" id="extracurricular" aria-labelledby="extracurricular-heading">
   <header class="home-section__heading">
     <h2 id="extracurricular-heading">Beyond research</h2>
-    <p>Away from the models</p>
+    <p>Outside of model world</p>
   </header>
   {% include extracurricular.html %}
 </section>
