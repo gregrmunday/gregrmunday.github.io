@@ -15,11 +15,10 @@ activities:
       - image: /images/extracurricular/snowshoe.JPG
 
   - title: Music
+    url: https://open.spotify.com/artist/5e2CZ4FXQmv5Q2dw49Gd9W?si=1H_ttLB-RgGeapys6T_JLQ
+    link_label: Listen on Spotify
     description: >-
-      Grade 8 Voice, Grade 6 Piano and Grade 4 Traditional Irish Violin,
-      all with distinction.
-
-      I also write songs, produce them and occasionally publish them :0
+      I enjoy writing music, check it out :) 
     photos: 
       - image: /images/extracurricular/music.png
 

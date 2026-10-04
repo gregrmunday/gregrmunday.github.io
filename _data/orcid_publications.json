@@ -57,7 +57,10 @@
       "venue": "Nature Communications",
       "doi": "10.1038/s41467-026-73612-0",
       "url": "https://doi.org/10.1038/s41467-026-73612-0",
-      "orcid_url": "https://orcid.org/0000-0003-4750-9923"
+      "orcid_url": "https://orcid.org/0000-0003-4750-9923",
+      "first_author": "Steinert",
+      "author_count": 9,
+      "author_metadata_url": "https://api.crossref.org/works/10.1038%2Fs41467-026-73612-0"
     },
     {
       "put_code": 217484885,
@@ -70,7 +73,10 @@
       "venue": "Environmental Research Letters",
       "doi": "10.1088/1748-9326/ae7586",
       "url": "https://doi.org/10.1088/1748-9326/ae7586",
-      "orcid_url": "https://orcid.org/0000-0003-4750-9923"
+      "orcid_url": "https://orcid.org/0000-0003-4750-9923",
+      "first_author": "Steinert",
+      "author_count": 5,
+      "author_metadata_url": "https://api.crossref.org/works/10.1088%2F1748-9326%2Fae7586"
     },
     {
       "put_code": 218450258,
@@ -161,7 +167,10 @@
       "venue": "Nature Climate Change",
       "doi": "10.1038/s41558-025-02327-9",
       "url": "https://doi.org/10.1038/s41558-025-02327-9",
-      "orcid_url": "https://orcid.org/0000-0003-4750-9923"
+      "orcid_url": "https://orcid.org/0000-0003-4750-9923",
+      "first_author": "Munday",
+      "author_count": 9,
+      "author_metadata_url": "https://api.crossref.org/works/10.1038%2Fs41558-025-02327-9"
     },
     {
       "put_code": 180114355,
@@ -226,7 +235,10 @@
       "venue": "Geoscientific Model Development",
       "doi": "10.5194/gmd-18-1785-2025",
       "url": "https://doi.org/10.5194/gmd-18-1785-2025",
-      "orcid_url": "https://orcid.org/0000-0003-4750-9923"
+      "orcid_url": "https://orcid.org/0000-0003-4750-9923",
+      "first_author": "Mathison",
+      "author_count": 12,
+      "author_metadata_url": "https://api.crossref.org/works/10.5194%2Fgmd-18-1785-2025"
     },
     {
       "put_code": 172635921,
@@ -252,7 +264,10 @@
       "venue": "Weather",
       "doi": "10.1002/wea.4560",
       "url": "https://doi.org/10.1002/wea.4560",
-      "orcid_url": "https://orcid.org/0000-0003-4750-9923"
+      "orcid_url": "https://orcid.org/0000-0003-4750-9923",
+      "first_author": "Macholl",
+      "author_count": 20,
+      "author_metadata_url": "https://api.crossref.org/works/10.1002%2Fwea.4560"
     },
     {
       "put_code": 180027460,

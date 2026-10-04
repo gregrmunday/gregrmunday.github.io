@@ -316,6 +316,9 @@
       padding: 6px 0;
       margin: 0;
     }
+    &__entry--journal {
+      grid-template-columns: 135px minmax(0, 1fr);
+    }
     &__year, &__venue, &__identifier {
       font-size: 11px;
     }
@@ -375,6 +378,7 @@
   gap: 12px;
 }
 .activity-card {
+  position: relative;
   min-width: 0;
   border: 1px solid var(--global-border-color);
   border-radius: 10px;
@@ -421,6 +425,19 @@
     display: inline-block;
     font-size: 12px;
     margin-top: 10px;
+    // Extend the real link over the card, preserving keyboard and link actions.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
+  }
+  &:has(a):hover, &:has(a):focus-within {
+    border-color: var(--global-base-color);
+  }
+  &:has(a):focus-within {
+    outline: 2px solid var(--global-base-color);
+    outline-offset: 3px;
   }
 }
 
@@ -460,6 +477,9 @@
   }
 }
 @media (max-width: 480px) {
+  .home-section .publication-list__entry--journal {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
   .home-grid {
     padding: 16px;
   }

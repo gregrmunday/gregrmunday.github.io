@@ -1,5 +1,5 @@
 # Main-page text: the original introduction, retained in the compact layout.
-eyebrow: University of Oxford · Intelligent Earth
+# eyebrow: University of Oxford · Intelligent Earth
 headline: "Climate modelling 🤝 machine learning"
 intro: >-
   I'm Greg, a climate scientist and PhD student researcher at the University of Oxford. I'm part of the UKRI Intelligent Earth: AI for the Environment CDT programme and am broadly interested in machine learning for climate modelling, emulation and impacts. I'm very excited to explore the power that generalisable, hybrid data-driven + physics parameterisations might bring to climate models, especially using online learning.

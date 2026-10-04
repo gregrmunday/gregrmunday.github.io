@@ -45,6 +45,8 @@ are supported. To adjust a photo's crop, add `position: '50% 35%'` to that photo
 Images are cropped to 4:3 and load lazily. For a lightweight page, export photos
 at roughly 800–1200 pixels wide as JPEG or WebP and compress them before adding.
 The starter cards contain no photographs; add your own when ready.
+An activity with a `url` makes its entire card clickable; `link_label` provides
+the visible link text and keyboard access. The Music card links to Spotify.
 
 ## Layout and compact lists
 

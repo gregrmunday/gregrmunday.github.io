@@ -24,6 +24,16 @@ an unavailable or malformed profile leaves the committed cache untouched.
 Unsuccessful detail requests leave an entry linked to its Scholar citation,
 with profile metadata available for duplicate matching.
 
+Journal labels use `first_author` and `author_count`, obtained from the DOI's
+Crossref record by the ORCID importer. Names are cached in
+`_data/orcid_publications.json`, so subsequent refreshes do not fetch known
+authors again. Failed lookups keep existing names, and missing names fall back
+to a year-only label. The display is `Surname et al. YEAR` for multiple authors
+or `Surname YEAR` for a single author. Do not enter these labels by hand in the
+page template. `--source` imports reuse cached names without network requests;
+`--author-metadata /path/to/responses.json` can supply saved Crossref responses
+keyed by normalised DOI for offline enrichment.
+
 You can also import a saved profile HTML file:
 
 ```sh
@@ -72,4 +82,5 @@ and associate meetings with cities; these manual details survive source refreshe
 See [TALKMAP.md](TALKMAP.md) for examples.
 
 References: [ORCID identifiers](https://info.orcid.org/documentation/integration-guide/orcid-and-persistent-identifiers/),
-[Google Scholar help](https://scholar.google.com/intl/en/scholar/help.html).
+[Google Scholar help](https://scholar.google.com/intl/en/scholar/help.html),
+[Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/).

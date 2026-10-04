@@ -54,6 +54,9 @@
     padding-top: 0.08rem;
     font-variant-numeric: tabular-nums;
   }
+  &__entry--journal {
+    grid-template-columns: 135px minmax(0, 1fr);
+  }
   &__title {
     font-weight: 500;
     text-decoration: none !important;
