@@ -1,7 +1,7 @@
 {% assign awards = site.data.academic_cv.sections | where: 'id', 'awards' | first %}
 {% if awards.entries.size > 0 %}
 <section class="home-sidebox" id="awards" aria-labelledby="awards-heading">
-  <h2 id="awards-heading">Awards &amp; support</h2>
+  <h2 id="awards-heading">Awards</h2>
   <ul class="home-sidebox__awards">
     {% for award in awards.entries %}
     <li>

@@ -2,28 +2,30 @@
 # Put your photos in images/extracurricular/ and use a root-relative path below.
 # Each photo needs meaningful alt text; captions and external links are optional.
 activities:
+  - title: Surfing
+    description: >-
+      Lifelong pursuit of getting tubed.
+    photos:
+      - image: /images/extracurricular/surf.jpg
+
   - title: Outdoors
     description: >-
-      Surfing and organising surf trips, with climbing, snowboarding,
-      mountain biking and running along the way.
-    photos: []
-    # photos:
-    #   - image: /images/extracurricular/surfing.jpg
-    #     alt: Describe what is visible in your photo
-    #     caption: An optional place, date or short story
+      Anything ocean, mountains and forests.
+    photos: 
+      - image: /images/extracurricular/snowshoe.jpg
 
-  - title: Photography
-    description: >-
-      Freelance photography for hospitality marketing, blogs and university societies.
-    photos: []
-    # url: https://your-portfolio.example
-    # link_label: View my photography
 
   - title: Music
     description: >-
       Grade 8 Voice, Grade 6 Piano and Grade 4 Traditional Irish Violin,
       all with distinction.
-    photos: []
+
+      I also write songs, produce them and occasionally publish them :0
+    photos: 
+      - image: /images/extracurricular/music.png
+
+    # url: https://your-portfolio.example
+    # link_label: View my photography
 
 # Example of a new activity (uncomment and add under activities):
 #   - title: A new activity

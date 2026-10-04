@@ -69,7 +69,7 @@ sections:
         summary: "Physics, Mathematics and Chemistry (all A); French AS (A)."
 
   - id: awards
-    title: Awards and prizes
+    title: Awards
     entries:
       - title: Best Poster Award
         organisation: Intelligent Earth CDT Conference
@@ -80,9 +80,9 @@ sections:
       - title: Keble Associate Study Award
         organisation: Keble College, University of Oxford
         # Add dates: "YEAR" once confirmed.
-      - title: Full doctoral scholarship
-        organisation: Intelligent Earth · UKRI CDT in AI for the Environment
-        dates: "2025"
+      # - title: Full doctoral scholarship
+      #   organisation: Intelligent Earth · UKRI CDT in AI for the Environment
+      #   dates: "2025"
       # Add recent prizes here. Example (remove the # characters):
       # - title: Name of prize
       #   organisation: Awarding organisation
@@ -111,7 +111,6 @@ sections:
         url: https://www.agu.org/Channel/Geophysical-Research-Letters
       - title: Global Sustainability
         url: https://www.cambridge.org/core/journals/global-sustainability
-        summary: Review of “Ten new insights in climate science”.
       # Add further journals here; dates and a short summary are optional.
 
   - id: experience
