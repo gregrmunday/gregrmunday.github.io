@@ -103,6 +103,10 @@ sections:
         organisation: Met Office
         dates: 2022–2025
         summary: Tutorials on Earth system model evaluation and mentoring of junior colleagues.
+      - title: AOPP internal conference
+        organisation: Atmospheric, Oceanic and Planetary Physics, University of Oxford
+        dates: "2026"
+        summary: Co-organised the AOPP departmental retreat, including chairing a session.
 
   - id: reviewing
     title: Reviewer for
