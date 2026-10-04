@@ -318,7 +318,8 @@
       const active = city.name === selectedCity;
       city.group.style.display = count ? '' : 'none';
       city.marker.setAttribute('aria-pressed', String(active));
-      city.marker.setAttribute('aria-label', `${city.name}: ${count} presentation${count === 1 ? '' : 's'}`);
+      const authorLabel = count === 1 ? ` · ${roleLabelFor(city.entries.find(matchesYear))}` : '';
+      city.marker.setAttribute('aria-label', `${city.name}: ${count} presentation${count === 1 ? '' : 's'}${authorLabel}`);
       city.title.textContent = city.marker.getAttribute('aria-label');
       city.button.hidden = count === 0;
       city.button.textContent = `${city.name.split(',')[0]} · ${count}`;

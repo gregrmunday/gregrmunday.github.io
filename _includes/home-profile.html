@@ -5,8 +5,9 @@
   <img class="home-profile__portrait" src="{{ portrait | escape }}" alt="{{ profile.name | escape }}" width="112" height="112" fetchpriority="high">
   <div>
     <h2>{{ profile.name | escape }}</h2>
-    <p>DPhil researcher<br>University of Oxford</p>
-    <span class="home-profile__location">Oxford, UK</span>
+    {% if profile.bio %}<p>{{ profile.bio | escape }}</p>{% endif %}
+    {% if profile.bio1 %}<p>{{ profile.bio1 | escape }}</p>{% endif %}
+    {% if profile.location %}<span class="home-profile__location">{{ profile.location | escape }}</span>{% endif %}
   </div>
 </div>
 <ul class="home-profile__links" aria-label="Find me online">

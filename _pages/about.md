@@ -16,7 +16,7 @@ redirect_from:
   <ul class="home-research" aria-label="Research interests">
     {% for interest in site.data.home.research %}<li>{{ interest | escape }}</li>{% endfor %}
   </ul>
-  <p class="home-intro__contact">{{ site.data.home.contact | escape }} <a href="mailto:{{ site.data.academic_cv.email | escape }}">Email me <span aria-hidden="true">↗</span></a></p>
+  <p class="home-intro__contact">{{ site.data.home.contact | escape }}</p>
 </section>
 
 <section class="home-section" id="publications" aria-labelledby="publications-heading">

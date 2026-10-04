@@ -13,6 +13,9 @@
   --home-tint: #edf3ed;
   --home-muted: #63766f;
   padding-bottom: 0;
+  // The legacy theme script injects an inline margin to reserve sticky-footer
+  // space. This page has a normal-flow footer and needs no extra space below it.
+  margin-bottom: 0 !important;
   font-size: 15px;
   line-height: 1.55;
 

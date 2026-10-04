@@ -13,6 +13,12 @@ DOI, or "VENUE:ABSTRACT" when no DOI exists. Never match by a mutable title.
 {% assign conference_location = conference_details.location | default: conference_meeting.location %}
 {% assign conference_type = conference_details.type | default: conference_work.label %}
 {% assign author_role = conference_details.author_role | default: 'unknown' %}
+{% comment %}A confirmed numeric position takes precedence over inferred author order.{% endcomment %}
+{% if conference_details.author_position == 1 %}
+  {% assign author_role = 'first-author' %}
+{% elsif conference_details.author_position > 1 %}
+  {% assign author_role = 'co-author' %}
+{% endif %}
 {% if author_role == 'unknown' and conference_work.authors and conference_work.authors != empty %}
   {% assign first_author = conference_work.authors | split: ',' | first | strip | remove: '.' %}
   {% if first_author == 'G Munday' or first_author == 'Gregory Munday' %}

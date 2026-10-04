@@ -49,7 +49,7 @@ meetings:
 overrides:
   "10.5194/ems2026-226":
     author_role: co-author
-    author_position: 2
+    author_position: 2 # Confirmed by Gregory; keep this blue, not unconfirmed.
   "AGU 2022:GC26E-04":
     presented_by_gregory: true
     show_on_map: true

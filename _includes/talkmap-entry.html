@@ -6,6 +6,7 @@
   data-conference-key="{{ conference_key | escape }}"
   data-author-role="{{ presentation_role | escape }}"
   data-author-label="{{ presentation_role_label | escape }}"
+  {% if conference_details.author_position %}data-author-position="{{ conference_details.author_position }}"{% endif %}
   data-location="{{ conference_location | escape }}"
   data-year="{{ year | escape }}"
   {% if coordinates %}data-latitude="{{ coordinates.latitude }}" data-longitude="{{ coordinates.longitude }}"{% endif %}>
