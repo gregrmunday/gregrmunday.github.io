@@ -32,6 +32,7 @@ author:
   employer         : "University of Oxford"
   uri              : # URL
   email            : "gregory dot munday at keble dot ox dot ac dot uk" 
+  cv               : "/files/GMunday_CV.pdf" # Replace this PDF to update the sidebar CV.
 
   # Academic websites
   academia         : # URL

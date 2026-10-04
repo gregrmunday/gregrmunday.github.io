@@ -24,8 +24,28 @@ exclude_talks: []
 # Add presentations without creating a separate talk page here. Keep newest
 # first. A missing location or unknown coordinates still leaves a visible entry
 # in the list; the map never guesses a city.
-presentations: []
-# Example (replace [] above, then remove the # characters):
+presentations:
+  # These talks are listed on Gregory's Google Scholar profile but not ORCID.
+  # Only the publication month is recorded, so no exact talk day is inferred.
+  - title: "Showcasing PRIME: Probabilistic Regional Impacts from Model patterns and Emissions"
+    venue: AGU Fall Meeting 2023
+    year: "2023"
+    type: Conference talk
+    location: San Francisco, USA
+    abstract_id: GC23D-04
+    url: https://ui.adsabs.harvard.edu/abs/2023AGUFMGC23D..04M/abstract
+    source: https://scholar.google.com/citations?view_op=view_citation&user=xtzdb1IAAAAJ&citation_for_view=xtzdb1IAAAAJ:UeHWp8X0CEIC
+
+  - title: FaIR-IMOGEN-Patterns for Impacts
+    venue: AGU Fall Meeting 2022
+    year: "2022"
+    type: Conference talk
+    location: Chicago, USA
+    abstract_id: GC26E-04
+    url: https://ui.adsabs.harvard.edu/abs/2022AGUFMGC26E..04M/abstract
+    source: https://scholar.google.com/citations?view_op=view_citation&user=xtzdb1IAAAAJ&citation_for_view=xtzdb1IAAAAJ:u-x6o8ySG0sC
+
+# To add another presentation, copy the fields above or use this example:
 #   - title: Title of my presentation
 #     venue: Conference name
 #     date: 2026-06-01

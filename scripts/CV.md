@@ -1,34 +1,12 @@
-# Editing the CV
+# Updating the CV PDF
 
-All text for `/cv/` lives in `_data/academic_cv.yml`. Edit that file to update the
-page; Jekyll renders it automatically. Sections and entries appear in the order
-written, so put recent positions and awards first.
+The CV is linked below the other author links in the left sidebar. It opens
+`files/GMunday_CV.pdf` directly. Replace that file with your updated CV to keep
+the same link. No HTML changes or conversion scripts are needed.
 
-Each section has an `id`, `title` and `entries`. Every entry needs a `title`.
-Optional fields: `organisation`, `dates`, `summary`, `url` and `highlights`
-(a list of short bullet points). Dates are plain text; quote standalone years
-such as `"2026"`. No HTML is needed. Quote text containing a colon followed by
-a space.
+To change the filename, edit `author.cv` in `_config.yml` and `redirect_to` in
+`_pages/cv.md` and `_pages/cv-json.md`. The old `/cv/`, `/resume`, `/cv-json/`
+and `/resume-json` addresses redirect to the PDF.
 
-Add prizes under `id: awards`, journals under `id: reviewing`, and interests or
-activities under `id: extracurricular`. Commented examples are beside those
-sections. Empty sections and their navigation links are hidden.
-
-For example, replace the reviewing section with:
-
-```yaml
-  - id: reviewing
-    title: Reviewer for
-    entries:
-      - title: Journal name
-        dates: 2026–present
-```
-
-To offer a PDF download, add the file to `files/` and set `pdf_url` near the top
-of the YAML file to `/files/your-cv.pdf`. The browser's Print menu also gives a
-clean copy without site navigation or the profile sidebar.
-
-Layout: `_includes/academic-cv.html`. Styles: `_sass/layout/_academic_cv.scss`.
-These are separate from the text so routine updates only need the YAML file.
-The older `scripts/update_cv_json.sh` converter belongs to the template's JSON
-CV and is not used by this page.
+The older `_data/academic_cv.yml`, `_includes/academic-cv.html` and CV JSON
+converter are no longer used by the website's CV links.

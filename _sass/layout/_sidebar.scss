@@ -322,3 +322,13 @@
     }
   }
 }
+/* Keep the CV below the existing profile links. */
+.author__urls .author__cv {
+  margin-top: 0.6rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--global-border-color);
+
+  span {
+    font-size: 0.85em;
+  }
+}

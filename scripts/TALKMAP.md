@@ -22,6 +22,11 @@ location: Vienna, Austria
 For a presentation that only needs an external abstract link, add an entry to
 `presentations` in `_data/talkmap.yml` instead. There is a commented example in
 that file. The browser sorts the combined list by year, newest first.
+The AGU22 and AGU23 entries were found on Gregory's Google Scholar profile;
+their `source` fields record those citation links, and `url` links to the
+corresponding NASA ADS abstracts. These manual entries persist independently
+of ORCID syncs. `abstract_id` optionally displays the conference abstract code.
+Use `year` alone when the precise presentation day is unknown.
 
 New cities need an entry under `locations` with a matching name, latitude and
 longitude. Coordinates refer to the city centre. Unrecognised locations still

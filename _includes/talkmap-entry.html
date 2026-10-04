@@ -12,6 +12,7 @@
   <div class="talks-atlas__entry-meta">
     <span>{{ year | escape }}</span>
     {% if presentation.type %}<span>{{ presentation.type | escape }}</span>{% endif %}
+    {% if presentation.abstract_id %}<span>{{ presentation.abstract_id | escape }}</span>{% endif %}
   </div>
   <h3>
     {% if presentation.url %}

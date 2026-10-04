@@ -4,8 +4,7 @@
 # links. Removing a link prevents it from showing in the header, but does not
 # prevent it from being included in the site.
 #
-# NOTE that only one of the CV options should be selected, the first is for the
-#      Markdown formatted page while the second is generated using JSON.
+# The CV PDF is linked at the bottom of the author sidebar instead.
 
 main:
   - title: "Publications"
@@ -13,6 +12,3 @@ main:
 
   - title: "Talks"
     url: /talks/    
-
-  - title: "CV"
-    url: /cv/
