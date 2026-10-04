@@ -5,6 +5,7 @@
 <article class="talks-atlas__entry"
   data-conference-key="{{ conference_key | escape }}"
   data-author-role="{{ presentation_role | escape }}"
+  data-author-label="{{ presentation_role_label | escape }}"
   data-location="{{ conference_location | escape }}"
   data-year="{{ year | escape }}"
   {% if coordinates %}data-latitude="{{ coordinates.latitude }}" data-longitude="{{ coordinates.longitude }}"{% endif %}>
@@ -12,7 +13,7 @@
     <span>{{ year | escape }}</span>
     {% if conference_type %}<span>{{ conference_type | escape }}</span>{% endif %}
     {% if presentation.abstract_id %}<span>{{ presentation.abstract_id | escape }}</span>{% endif %}
-    {% if presentation_role == 'first-author' %}<span class="talks-atlas__role">First author</span>{% elsif presentation_role == 'presenter' %}<span class="talks-atlas__role">Presenting author</span>{% elsif presentation_role == 'co-author' %}<span class="talks-atlas__role">Co-author</span>{% endif %}
+    {% if presentation_role != 'unknown' %}<span class="talks-atlas__role">{{ presentation_role_label | escape }}</span>{% endif %}
   </div>
   <h3>
     {% if presentation.url %}

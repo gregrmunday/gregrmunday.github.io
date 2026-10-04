@@ -1,0 +1,34 @@
+# Add or reorder activities here. Photos are optional: cards stay compact without them.
+# Put your photos in images/extracurricular/ and use a root-relative path below.
+# Each photo needs meaningful alt text; captions and external links are optional.
+activities:
+  - title: Outdoors
+    description: >-
+      Surfing and organising surf trips, with climbing, snowboarding,
+      mountain biking and running along the way.
+    photos: []
+    # photos:
+    #   - image: /images/extracurricular/surfing.jpg
+    #     alt: Describe what is visible in your photo
+    #     caption: An optional place, date or short story
+
+  - title: Photography
+    description: >-
+      Freelance photography for hospitality marketing, blogs and university societies.
+    photos: []
+    # url: https://your-portfolio.example
+    # link_label: View my photography
+
+  - title: Music
+    description: >-
+      Grade 8 Voice, Grade 6 Piano and Grade 4 Traditional Irish Violin,
+      all with distinction.
+    photos: []
+
+# Example of a new activity (uncomment and add under activities):
+#   - title: A new activity
+#     description: A sentence about what you do and why you enjoy it.
+#     photos:
+#       - image: /images/extracurricular/my-photo.jpg
+#         alt: A useful description of the photo
+#         caption: An optional caption

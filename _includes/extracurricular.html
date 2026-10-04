@@ -1,0 +1,22 @@
+<div class="activity-grid">
+  {% for activity in site.data.extracurricular.activities %}
+  <article class="activity-card">
+    {% if activity.photos.size > 0 %}
+    <div class="activity-card__photos">
+      {% for photo in activity.photos %}
+      <figure>
+        {% if photo.image contains '://' %}{% assign photo_url = photo.image %}{% else %}{% assign photo_url = photo.image | relative_url %}{% endif %}
+        <img src="{{ photo_url | escape }}" alt="{{ photo.alt | escape }}" width="600" height="450" loading="lazy" decoding="async"{% if photo.position %} style="object-position: {{ photo.position | escape }}"{% endif %}>
+        {% if photo.caption %}<figcaption>{{ photo.caption | escape }}</figcaption>{% endif %}
+      </figure>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="activity-card__body">
+      <h3>{{ activity.title | escape }}</h3>
+      <p>{{ activity.description | escape }}</p>
+      {% if activity.url %}<a class="activity-card__link" href="{{ activity.url | escape }}">{{ activity.link_label | default: 'More' | escape }} <span aria-hidden="true">↗</span></a>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>

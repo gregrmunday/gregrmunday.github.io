@@ -1,0 +1,20 @@
+{% assign profile = site.author %}
+{% assign contact_email = site.data.academic_cv.email %}
+{% if profile.avatar contains '://' %}{% assign portrait = profile.avatar %}{% else %}{% assign portrait = profile.avatar | prepend: '/images/' | relative_url %}{% endif %}
+<div class="home-profile__identity">
+  <img class="home-profile__portrait" src="{{ portrait | escape }}" alt="{{ profile.name | escape }}" width="112" height="112" fetchpriority="high">
+  <div>
+    <h2>{{ profile.name | escape }}</h2>
+    <p>DPhil researcher<br>University of Oxford</p>
+    <span class="home-profile__location">Oxford, UK</span>
+  </div>
+</div>
+<ul class="home-profile__links" aria-label="Find me online">
+  {% if contact_email %}<li><a href="mailto:{{ contact_email | escape }}"><i class="fas fa-envelope" aria-hidden="true"></i>Email</a></li>{% endif %}
+  {% if profile.googlescholar %}<li><a href="{{ profile.googlescholar | escape }}"><i class="ai ai-google-scholar" aria-hidden="true"></i>Google Scholar</a></li>{% endif %}
+  {% if profile.orcid %}<li><a href="{{ profile.orcid | escape }}"><i class="ai ai-orcid" aria-hidden="true"></i>ORCID</a></li>{% endif %}
+  {% if profile.github %}<li><a href="https://github.com/{{ profile.github | escape }}"><i class="fab fa-github" aria-hidden="true"></i>GitHub</a></li>{% endif %}
+  {% if profile.linkedin %}<li><a href="https://www.linkedin.com/in/{{ profile.linkedin | escape }}"><i class="fab fa-linkedin" aria-hidden="true"></i>LinkedIn</a></li>{% endif %}
+  {% if profile.bluesky %}<li><a href="https://bsky.app/profile/{{ profile.bluesky | escape }}"><i class="fab fa-bluesky" aria-hidden="true"></i>Bluesky</a></li>{% endif %}
+</ul>
+{% if profile.cv %}<a class="home-profile__cv" href="{{ profile.cv | relative_url | escape }}"><i class="fas fa-file-pdf" aria-hidden="true"></i>Curriculum vitae <span>PDF ↗</span></a>{% endif %}

@@ -44,13 +44,15 @@
   }
   &__map {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     border: 1px solid var(--global-border-color);
     border-radius: 12px;
     background: var(--atlas-sea);
     box-shadow: 0 8px 26px rgba(30, 65, 57, 0.05);
     svg {
       display: block;
+      overflow: hidden;
+      border-radius: inherit;
       width: 100%;
       height: auto;
       aspect-ratio: 2 / 1;
@@ -142,7 +144,7 @@
   }
   &__tooltip {
     position: absolute;
-    z-index: 2;
+    z-index: 5;
     max-width: min(280px, calc(100% - 16px));
     padding: 0.55rem 0.7rem;
     border: 1px solid #c5d8d0;

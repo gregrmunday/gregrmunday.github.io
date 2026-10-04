@@ -1,17 +1,46 @@
 ---
+layout: onepage
 permalink: /
-title: "Climate modelling 🤝 machine learning"
-author_profile: true
-redirect_from: 
+title: "Gregory Munday · Climate modelling & machine learning"
+excerpt: "Climate scientist and DPhil researcher at Oxford, working on hybrid physics and AI for atmospheric modelling."
+author_profile: false
+redirect_from:
   - /about/
   - /about.html
 ---
+<section class="home-intro" id="about" aria-labelledby="about-heading" tabindex="-1">
+  <p class="home-eyebrow">{{ site.data.home.eyebrow | escape }}</p>
+  <h1 id="about-heading">{{ site.data.home.headline | escape }}</h1>
+  <p>{{ site.data.home.intro | escape }}</p>
+  <p class="home-intro__background">{{ site.data.home.background | escape }}</p>
+  <ul class="home-research" aria-label="Research interests">
+    {% for interest in site.data.home.research %}<li>{{ interest | escape }}</li>{% endfor %}
+  </ul>
+  <p class="home-intro__contact">{{ site.data.home.contact | escape }} <a href="mailto:{{ site.data.academic_cv.email | escape }}">Email me <span aria-hidden="true">↗</span></a></p>
+</section>
 
-I'm Greg, a climate scientist and PhD student researcher at the University of Oxford. I'm part of the UKRI Intelligent Earth: AI for the Environment CDT programme and am broadly interested in machine learning for climate modelling, emulation and impacts. I'm very excited to explore the power that generalisable, hybrid data-driven + physics parameterisations might bring to climate models, especially using online learning.
+<section class="home-section" id="publications" aria-labelledby="publications-heading">
+  <header class="home-section__heading">
+    <h2 id="publications-heading">Publications</h2>
+    <p><a href="{{ site.author.orcid | escape }}">ORCID</a> + <a href="{{ site.author.googlescholar | escape }}">Google Scholar</a></p>
+  </header>
+  {% include orcid-publications.html compact=true %}
+</section>
 
-After completing my MPHYS in Physics and Astrophysics at the University of Exeter, I worked for the UK Met Office on all things climate and weather science. I started as a Deployable Project Scientist and eventually moved to the Climate Resilience team, and was fortunate enough to land some cool projects with some amazing colleagues. These included working on climate emulators, ecosystem impacts modelling, sea-level science, ML for the global lightning observation network, land-surface modelling, flood modelling, attribution science, and some more software engineering-y projects.
+<section class="home-section" id="talks" aria-labelledby="talks-heading">
+  <header class="home-section__heading">
+    <h2 id="talks-heading">Talks &amp; presentations</h2>
+    <p>Talks, posters &amp; co-authored work</p>
+  </header>
+  {% include talks-atlas.html compact=true %}
+</section>
 
-If you're a prospective student and would like to know more about the Intelligent Earth programme or have any questions, feel free to reach out to me via email (on the left there 👈) or on LinkedIn!
-
-Research Interests
----
+{% if site.data.extracurricular.activities.size > 0 %}
+<section class="home-section" id="extracurricular" aria-labelledby="extracurricular-heading">
+  <header class="home-section__heading">
+    <h2 id="extracurricular-heading">Beyond research</h2>
+    <p>Away from the models</p>
+  </header>
+  {% include extracurricular.html %}
+</section>
+{% endif %}

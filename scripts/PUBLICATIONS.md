@@ -1,6 +1,7 @@
 # Publication syncing
 
-`_data/publications.json` is the merged list rendered on `/publications/`.
+`_data/publications.json` is the merged list rendered in the home-page
+`/#publications` section. `/publications/` redirects there.
 Its inputs are `_data/orcid_publications.json` (papers, preprints and conference
 works) and `_data/scholar_publications.json` (conference entries only).
 The profile URLs come from `author.orcid` and `author.googlescholar` in

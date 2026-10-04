@@ -44,8 +44,12 @@ meetings:
 # Stable keys: DOI if present, otherwise "venue:abstract_id".
 # presented_by_gregory: true makes a co-authored contribution green while keeping
 # its actual author order. show_on_map is used if include_all_conferences is false.
-# Optional fields: type, location, author_role (first-author/co-author/unknown).
+# Optional fields: type, location, author_role (first-author/co-author/unknown),
+# author_position (a confirmed numeric position in the author list).
 overrides:
+  "10.5194/ems2026-226":
+    author_role: co-author
+    author_position: 2
   "AGU 2022:GC26E-04":
     presented_by_gregory: true
     show_on_map: true

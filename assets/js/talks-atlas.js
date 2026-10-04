@@ -13,6 +13,7 @@
   const clearButton = root.querySelector('[data-map-clear]');
   const tooltip = root.querySelector('[data-map-tooltip]');
   const selection = root.querySelector('[data-map-selection]');
+  const catalogue = root.querySelector('[data-map-catalogue]');
   const entries = [...root.querySelectorAll('.talks-atlas__entry')];
   const svgNamespace = 'http://www.w3.org/2000/svg';
   const cities = new Map();
@@ -63,6 +64,7 @@
   function selectCity(name) {
     selectedCity = selectedCity === name ? null : name;
     if (selectedCity) {
+      if (catalogue) catalogue.open = true;
       const city = cities.get(selectedCity);
       centre = { x: city.x, y: city.y };
       zoom = 2.5;
@@ -143,17 +145,26 @@
     return entry.dataset.authorRole || 'unknown';
   }
 
-  function showTooltip(entry, marker) {
+  function roleLabelFor(entry) {
+    return entry.dataset.authorLabel || roleLabels[roleFor(entry)];
+  }
+
+  function showTooltip(entry, marker, city = null) {
     const title = document.createElement('strong');
     title.textContent = entry.querySelector('h3').textContent.trim();
     const meta = document.createElement('small');
-    meta.textContent = `${entry.dataset.year} · ${roleLabels[roleFor(entry)]}`;
+    meta.textContent = `${entry.dataset.year} · ${roleLabelFor(entry)}`;
     tooltip.replaceChildren(title, meta);
     tooltip.hidden = false;
     const mapRect = svg.parentElement.getBoundingClientRect();
     const pointRect = marker.getBoundingClientRect();
+    // Anchor above the entire spread, so the card never masks sibling points.
+    // Allow it to extend above the map when a cluster is near its upper edge.
+    const clusterRect = city && expandedCity === city.name
+      ? city.backdrop.getBoundingClientRect()
+      : pointRect;
     const left = Math.max(8, Math.min(mapRect.width - tooltip.offsetWidth - 8, pointRect.left - mapRect.left - tooltip.offsetWidth / 2));
-    const top = Math.max(8, pointRect.top - mapRect.top - tooltip.offsetHeight - 10);
+    const top = clusterRect.top - mapRect.top - tooltip.offsetHeight - 14;
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
   }
@@ -163,6 +174,7 @@
   }
 
   function selectPresentation(city, entry) {
+    if (catalogue) catalogue.open = true;
     selectedCity = city.name;
     selectedEntry?.classList.remove('talks-atlas__entry--selected');
     selectedEntry = entry;
@@ -171,7 +183,7 @@
     expandCity(city);
     const title = entry.querySelector('h3').cloneNode(true);
     const meta = document.createElement('span');
-    meta.textContent = `${entry.dataset.year} · ${city.name} · ${roleLabels[roleFor(entry)]}`;
+    meta.textContent = `${entry.dataset.year} · ${city.name} · ${roleLabelFor(entry)}`;
     selection.replaceChildren(title, meta);
     selection.hidden = false;
   }
@@ -227,14 +239,14 @@
       const marker = svgElement('g', {
         class: 'talks-atlas__talk-point', role: 'button', tabindex: '-1',
         'data-author-role': roleFor(entry),
-        'aria-label': `${entry.dataset.year}: ${entry.querySelector('h3').textContent.trim()}. ${roleLabels[roleFor(entry)]}. Select for details.`
+        'aria-label': `${entry.dataset.year}: ${entry.querySelector('h3').textContent.trim()}. ${roleLabelFor(entry)}. Select for details.`
       });
       const hit = svgElement('circle', { class: 'talks-atlas__hit' });
       const pin = svgElement('circle', { class: 'talks-atlas__pin' });
       marker.append(hit, pin);
-      marker.addEventListener('pointerenter', () => showTooltip(entry, marker));
+      marker.addEventListener('pointerenter', () => showTooltip(entry, marker, city));
       marker.addEventListener('pointerleave', hideTooltip);
-      marker.addEventListener('focus', () => showTooltip(entry, marker));
+      marker.addEventListener('focus', () => showTooltip(entry, marker, city));
       marker.addEventListener('blur', hideTooltip);
       marker.addEventListener('click', event => {
         event.stopPropagation();

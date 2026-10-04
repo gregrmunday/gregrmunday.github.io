@@ -2,12 +2,13 @@
 
 ## One shared conference list
 
-The Talks page, `/talkmap.html` and the conference section of Publications all
+The home-page Talks section and the conference section of Publications both
 read `_data/publications.json`. The ORCID + Scholar sync merges and deduplicates
 this file before publishing. Titles, years, abstracts and links are never copied
 into a second map list. A newly imported conference contribution automatically
 appears on both pages. Existing `_talks/` detail pages remain accessible, but no
 longer supply the map list.
+The old `/talks/` and `/talkmap.html` addresses redirect to `/#talks`.
 
 `_data/talkmap.yml` contains only manual annotations: meeting locations,
 author/presenter confirmations, and talk/poster formats. Source refreshes do
@@ -38,6 +39,9 @@ set using `author_role: first-author`, `co-author` or `unknown`.
 author”, preserving the actual author order. AGU 2022, AGU 2023 and the
 ScenarioMIP-CMIP7 / ProFSea EGU 2026 abstract use this confirmation. AGU 2024 is
 blue. Unknown author order stays neutral and is explained in the legend.
+For a confirmed second author, add `author_position: 2` alongside
+`author_role: co-author`. Both pages show “Second author”; the point stays blue.
+The Utrecht EMS 2026 contribution uses this annotation.
 
 ## Add a conference location
 
@@ -77,6 +81,8 @@ keyboard users. Focus a cluster and press the down arrow to reach its points;
 Enter selects a point. Hover/focus shows its title and role; selecting it shows
 linked details and highlights the corresponding list entry. Spread distances
 stay constant in screen pixels while zooming; larger groups use multiple rings.
+Hover cards sit above the entire expanded cluster, with clearance for every
+point. They can extend above the map's border when the cluster is near its top.
 
 Mouse dragging pans; buttons or +/- zoom; arrow keys pan when the map has focus;
 Escape resets. Touch scrolling remains native. The full list is available without

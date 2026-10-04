@@ -1,0 +1,19 @@
+# Main-page text. Keep paragraphs short; the publications/map sync separately.
+eyebrow: University of Oxford · Intelligent Earth
+headline: Climate modelling meets machine learning.
+intro: >-
+  I'm Greg, a climate scientist and DPhil researcher developing hybrid physics
+  and AI parameterisations for SpeedyWeather.jl, a global atmospheric model.
+  My research explores online learning,
+  physical constraints and generalisation across places, extremes and a changing climate.
+background: >-
+  After an MPhys in Physics with Astrophysics at Exeter, I worked at the UK Met
+  Office on climate and sea-level emulators,
+  ecosystem impacts, flood attribution and machine learning for weather science.
+research:
+  - Hybrid physics + AI
+  - Atmospheric modelling
+  - Climate emulation & impacts
+contact: >-
+  Interested in collaborating, or curious about the Intelligent Earth programme?
+  Feel free to get in touch.

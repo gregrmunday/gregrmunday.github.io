@@ -10,7 +10,14 @@
   {% assign works = publications.works | where: "category", category.id %}
   {% if works.size > 0 %}
     <section class="publication-list__section" id="{{ category.id | escape }}" aria-labelledby="{{ category.id | escape }}-heading">
+    {% if include.compact and category.id != 'journal_articles' %}
+    <details class="home-disclosure">
+      <summary id="{{ category.id | escape }}-heading">{{ category.title | escape }} <span>{{ works.size }}</span></summary>
+    {% elsif include.compact %}
+    <h3 id="{{ category.id | escape }}-heading">{{ category.title | escape }} <span>{{ works.size }}</span></h3>
+    {% else %}
     <h2 id="{{ category.id | escape }}-heading">{{ category.title | escape }} <span>{{ works.size }}</span></h2>
+    {% endif %}
     <ol class="publication-list__entries">
     {% for work in works %}
       {% assign conference_key = nil %}
@@ -22,10 +29,12 @@
           {% if work.venue != empty %}<span class="publication-list__venue"> · {{ work.venue | escape }}</span>{% endif %}
           {% if work.abstract_id %}<span class="publication-list__identifier"> · {{ work.abstract_id | escape }}</span>{% endif %}
           {% if work.category == 'conferences' and presentation_role == 'presenter' %}<span class="publication-list__identifier"> · Presenting author</span>{% endif %}
+          {% if work.category == 'conferences' and presentation_role_label == 'Second author' %}<span class="publication-list__identifier"> · Second author</span>{% endif %}
         </div>
       </li>
     {% endfor %}
     </ol>
+    {% if include.compact and category.id != 'journal_articles' %}</details>{% endif %}
     </section>
   {% endif %}
 {% endfor %}

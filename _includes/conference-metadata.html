@@ -25,5 +25,13 @@ DOI, or "VENUE:ABSTRACT" when no DOI exists. Never match by a mutable title.
 {% if conference_details.presented_by_gregory %}
   {% assign presentation_role = 'presenter' %}
 {% endif %}
+{% assign presentation_role_label = 'Author order unconfirmed' %}
+{% case presentation_role %}
+  {% when 'first-author' %}{% assign presentation_role_label = 'First author' %}
+  {% when 'presenter' %}{% assign presentation_role_label = 'Presenting author' %}
+  {% when 'co-author' %}
+    {% assign presentation_role_label = 'Co-author' %}
+    {% if conference_details.author_position == 2 %}{% assign presentation_role_label = 'Second author' %}{% endif %}
+{% endcase %}
 {% assign conference_on_map = site.data.talkmap.include_all_conferences %}
 {% if conference_details.show_on_map %}{% assign conference_on_map = true %}{% endif %}
