@@ -1,19 +1,28 @@
 {% assign publications = site.data.orcid_publications %}
+<div class="publication-list">
+<nav class="publication-list__nav" aria-label="Publication categories">
+  {% for category in publications.categories %}
+    {% assign works = publications.works | where: 'category', category.id %}
+    {% if works.size > 0 %}<a href="#{{ category.id | escape }}">{{ category.title | escape }} <span>{{ works.size }}</span></a>{% endif %}
+  {% endfor %}
+</nav>
 {% for category in publications.categories %}
   {% assign works = publications.works | where: "category", category.id %}
   {% if works.size > 0 %}
-    <h2>{{ category.title | escape }}</h2>
-    <hr />
+    <section class="publication-list__section" id="{{ category.id | escape }}" aria-labelledby="{{ category.id | escape }}-heading">
+    <h2 id="{{ category.id | escape }}-heading">{{ category.title | escape }} <span>{{ works.size }}</span></h2>
+    <ol class="publication-list__entries">
     {% for work in works %}
-      <div class="list__item">
-        <article class="archive__item" itemscope itemtype="https://schema.org/ScholarlyArticle">
-          <h3 class="archive__item-title" itemprop="headline">
-            <a href="{{ work.url | default: work.orcid_url | escape }}" itemprop="url">{{ work.title | escape }}</a>
-          </h3>
-          <p>{% if work.venue != empty %}<i>{{ work.venue | escape }}</i>{% if work.year != empty %}, {% endif %}{% endif %}{{ work.year | escape }}{% if category.id != 'journal_articles' %} · {{ work.label | escape }}{% endif %}</p>
-          {% if work.doi != empty %}<p><a href="{{ work.url | escape }}">doi:{{ work.doi | escape }}</a></p>{% endif %}
-        </article>
-      </div>
+      <li class="publication-list__entry">
+        <span class="publication-list__year">{{ work.year | escape }}</span>
+        <div>
+          <a class="publication-list__title" href="{{ work.url | default: work.orcid_url | escape }}"{% if work.doi != empty %} title="doi:{{ work.doi | escape }}"{% endif %}>{{ work.title | escape }}</a>
+          {% if work.venue != empty %}<span class="publication-list__venue"> · {{ work.venue | escape }}</span>{% endif %}
+        </div>
+      </li>
     {% endfor %}
+    </ol>
+    </section>
   {% endif %}
 {% endfor %}
+</div>

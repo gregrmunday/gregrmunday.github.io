@@ -1,0 +1,80 @@
+/* Compact bibliography: each title links directly to the DOI or work page. */
+.publication-list {
+  font-size: clamp(14px, 0.8rem, 16px);
+  line-height: 1.45;
+
+  &__intro {
+    margin: 0 0 0.6rem;
+    font-size: 0.7rem;
+  }
+  &__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    font-size: clamp(12px, 0.68rem, 14px);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--global-border-color);
+    a {
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    span {
+      font-weight: 400;
+    }
+  }
+  &__section {
+    margin: 0.9rem 0;
+    scroll-margin-top: 6rem;
+    h2 {
+      margin: 0 0 0.3rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    h2 span {
+      font-size: 0.65rem;
+      font-weight: 400;
+    }
+  }
+  &__entries {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  &__entry {
+    display: grid;
+    grid-template-columns: 2.3rem minmax(0, 1fr);
+    column-gap: 0.65rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--global-border-color);
+  }
+  &__year {
+    font-size: clamp(12px, 0.7rem, 14px);
+    padding-top: 0.08rem;
+    font-variant-numeric: tabular-nums;
+  }
+  &__title {
+    font-weight: 500;
+    text-decoration: none !important;
+    &:hover {
+      text-decoration: underline !important;
+    }
+  }
+  &__venue {
+    font-size: 0.7rem;
+    font-style: italic;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--global-base-color);
+    outline-offset: 3px;
+  }
+}
+
+/* Match the compact content hierarchy without changing other archive pages. */
+body:has(.academic-cv), body:has(.publication-list) {
+  .page__title {
+    font-size: 1.4rem;
+    margin-bottom: 0.6rem;
+  }
+}

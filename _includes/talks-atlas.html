@@ -1,0 +1,45 @@
+<div class="talks-atlas" data-talks-atlas>
+  <p class="talks-atlas__intro">Conference talks and posters, around the world.</p>
+  <div class="talks-atlas__interactive" hidden>
+    <div class="talks-atlas__toolbar">
+      <p class="talks-atlas__count" data-map-count aria-live="polite"></p>
+      <label class="talks-atlas__year">Year <select data-map-year aria-label="Filter presentations by year"><option value="all">All years</option></select></label>
+    </div>
+    <div class="talks-atlas__map">
+      <svg data-world-map viewBox="0 0 360 180" tabindex="0" role="group" aria-label="World map of conference presentations. Use plus and minus to zoom, arrow keys to pan, or select a city below.">
+        <g class="talks-atlas__graticule" aria-hidden="true">
+          <path d="M0 30H360 M0 60H360 M0 90H360 M0 120H360 M0 150H360 M30 0V180 M90 0V180 M150 0V180 M210 0V180 M270 0V180 M330 0V180" />
+        </g>
+        <image href="{{ '/assets/images/talkmap-world.svg' | relative_url }}" width="360" height="180" aria-hidden="true" />
+        <g data-map-markers></g>
+      </svg>
+      <div class="talks-atlas__zoom" aria-label="Map controls">
+        <button type="button" data-map-zoom="in" aria-label="Zoom in">+</button>
+        <button type="button" data-map-zoom="out" aria-label="Zoom out">−</button>
+        <button type="button" data-map-reset aria-label="Reset world map">↺</button>
+      </div>
+      <span class="talks-atlas__map-caption" aria-hidden="true">A world of shared ideas</span>
+      <a class="talks-atlas__credit" href="https://www.naturalearthdata.com/">Natural Earth</a>
+    </div>
+    <div class="talks-atlas__cities" data-map-cities aria-label="Filter by conference city"></div>
+    <p class="talks-atlas__hint">Select a city to explore its presentations. Drag the map or use the zoom controls.</p>
+  </div>
+
+  <div class="talks-atlas__list-header">
+    <h2 data-list-heading>All presentations</h2>
+    <button class="talks-atlas__clear" type="button" data-map-clear hidden>Show all cities</button>
+  </div>
+  <p data-map-empty hidden>No presentations match this selection.</p>
+  <div class="talks-atlas__list">
+    {% assign talks = site.talks | sort: 'date' | reverse %}
+    {% for presentation in talks %}
+      {% unless site.data.talkmap.exclude_talks contains presentation.url %}
+        {% include talkmap-entry.html presentation=presentation %}
+      {% endunless %}
+    {% endfor %}
+    {% for presentation in site.data.talkmap.presentations %}
+      {% include talkmap-entry.html presentation=presentation %}
+    {% endfor %}
+  </div>
+</div>
+<script src="{{ '/assets/js/talks-atlas.js' | relative_url }}" defer></script>

@@ -1,0 +1,24 @@
+{% assign presentation = include.presentation %}
+{% assign coordinates = site.data.talkmap.locations | where: 'name', presentation.location | first %}
+{% if presentation.year %}
+  {% assign year = presentation.year %}
+{% else %}
+  {% assign year = presentation.date | date: '%Y' %}
+{% endif %}
+<article class="talks-atlas__entry"
+  data-location="{{ presentation.location | escape }}"
+  data-year="{{ year | escape }}"
+  {% if coordinates %}data-latitude="{{ coordinates.latitude }}" data-longitude="{{ coordinates.longitude }}"{% endif %}>
+  <div class="talks-atlas__entry-meta">
+    <span>{{ year | escape }}</span>
+    {% if presentation.type %}<span>{{ presentation.type | escape }}</span>{% endif %}
+  </div>
+  <h3>
+    {% if presentation.url %}
+      {% assign entry_url = presentation.url %}
+      {% unless entry_url contains '://' %}{% assign entry_url = entry_url | relative_url %}{% endunless %}
+      <a href="{{ entry_url | escape }}">{{ presentation.title | escape }}</a>
+    {% else %}{{ presentation.title | escape }}{% endif %}
+  </h3>
+  <p>{{ presentation.venue | escape }}{% if presentation.location %}<span> · {{ presentation.location | escape }}</span>{% endif %}</p>
+</article>

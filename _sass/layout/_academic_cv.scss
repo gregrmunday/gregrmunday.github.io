@@ -2,47 +2,46 @@
 .academic-cv {
   --cv-accent: var(--global-base-color);
   max-width: 54rem;
-  font-size: 0.9rem;
-  line-height: 1.65;
+  font-size: clamp(14px, 0.8rem, 16px);
+  line-height: 1.45;
 
   &__intro {
     border-left: 3px solid var(--cv-accent);
-    padding: 0.3rem 0 0.3rem 1.3rem;
-    margin: 1.5rem 0;
+    padding: 0.1rem 0 0.1rem 0.8rem;
+    margin: 0.6rem 0 0.75rem;
   }
   &__role {
     margin: 0;
     color: var(--cv-accent);
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     font-weight: 600;
     letter-spacing: 0.025em;
   }
   h2.academic-cv__name {
-    margin: 0.3rem 0 0.6rem;
-    font-size: 1.7rem;
-    letter-spacing: -0.025em;
+    // The sidebar already identifies the author; keep the name for print.
+    display: none;
   }
   &__summary {
-    margin: 0 0 0.85rem;
+    margin: 0.25rem 0 0.35rem;
     max-width: 46rem;
   }
   &__contact {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem 1.2rem;
-    font-size: 0.78rem;
+    font-size: clamp(12px, 0.7rem, 14px);
     overflow-wrap: anywhere;
   }
 
   &__nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem 0.9rem;
-    padding: 1rem 0;
-    margin-bottom: 0.75rem;
+    gap: 0.2rem 0.75rem;
+    padding: 0.45rem 0;
+    margin-bottom: 0.6rem;
     border-top: 1px solid var(--global-border-color);
     border-bottom: 1px solid var(--global-border-color);
-    font-size: 0.75rem;
+    font-size: clamp(12px, 0.68rem, 14px);
     a {
       text-decoration: none;
     }
@@ -51,13 +50,13 @@
     }
   }
   &__section {
-    margin: 2rem 0;
+    margin: 0.9rem 0;
     scroll-margin-top: 6rem;
     > h2 {
-      font-size: 1.12rem;
+      font-size: 0.9rem;
       letter-spacing: -0.015em;
-      margin: 0 0 1rem;
-      padding-bottom: 0.55rem;
+      margin: 0 0 0.5rem;
+      padding-bottom: 0.25rem;
       border-bottom: 1px solid var(--global-border-color);
     }
   }
@@ -68,44 +67,44 @@
   }
   &__entry {
     display: grid;
-    grid-template-columns: 8.5rem minmax(0, 1fr);
-    column-gap: 1.5rem;
-    margin: 0 0 1.25rem;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    column-gap: 0.8rem;
+    margin: 0 0 0.55rem;
   }
   &__entry--undated {
     grid-template-columns: minmax(0, 1fr);
   }
   &__dates {
-    margin: 0.15rem 0 0;
-    font-size: 0.76rem;
+    margin: 0.1rem 0 0;
+    font-size: clamp(12px, 0.68rem, 14px);
     font-variant-numeric: tabular-nums;
   }
   &__details {
     min-width: 0;
     h3 {
       margin: 0;
-      font-size: 0.95rem;
-      line-height: 1.5;
+      font-size: clamp(14px, 0.82rem, 16px);
+      line-height: 1.45;
     }
     p {
-      margin: 0.3rem 0 0;
+      margin: 0.15rem 0 0;
     }
     .academic-cv__organisation {
-      margin-top: 0.1rem;
-      font-size: 0.85rem;
+      font-weight: 400;
+      font-size: inherit;
     }
   }
   &__highlights {
-    margin: 0.45rem 0 0;
+    margin: 0.2rem 0 0;
     padding-left: 1.15rem;
     li {
-      margin-bottom: 0.3rem;
+      margin-bottom: 0.1rem;
     }
   }
   &__footer {
-    padding-top: 1rem;
+    padding-top: 0.5rem;
     border-top: 1px solid var(--global-border-color);
-    font-size: 0.8rem;
+    font-size: 0.7rem;
   }
   a:focus-visible {
     outline: 2px solid var(--cv-accent);
@@ -115,13 +114,13 @@
   @media (max-width: 640px) {
     &__entry {
       grid-template-columns: minmax(0, 1fr);
-      row-gap: 0.25rem;
+      row-gap: 0.1rem;
     }
     &__intro {
-      padding-left: 1rem;
+      padding-left: 0.65rem;
     }
     &__section {
-      margin: 1.5rem 0;
+      margin: 0.9rem 0;
     }
   }
 }
@@ -143,6 +142,11 @@
     .academic-cv {
       max-width: none;
       font-size: 10pt;
+    }
+    h2.academic-cv__name {
+      display: block;
+      margin: 0.25rem 0;
+      font-size: 1.2rem;
     }
     .academic-cv__entry {
       break-inside: avoid;

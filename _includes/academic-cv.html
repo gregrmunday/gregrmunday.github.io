@@ -26,8 +26,10 @@
             <li class="academic-cv__entry{% unless entry.dates %} academic-cv__entry--undated{% endunless %}">
               {% if entry.dates %}<p class="academic-cv__dates">{{ entry.dates | escape }}</p>{% endif %}
               <div class="academic-cv__details">
-                <h3>{% if entry.url %}<a href="{{ entry.url | escape }}">{{ entry.title | escape }}</a>{% else %}{{ entry.title | escape }}{% endif %}</h3>
-                {% if entry.organisation %}<p class="academic-cv__organisation">{{ entry.organisation | escape }}</p>{% endif %}
+                <h3>
+                  {% if entry.url %}<a href="{{ entry.url | escape }}">{{ entry.title | escape }}</a>{% else %}{{ entry.title | escape }}{% endif %}
+                  {% if entry.organisation %}<span class="academic-cv__organisation"> · {{ entry.organisation | escape }}</span>{% endif %}
+                </h3>
                 {% if entry.summary %}<p>{{ entry.summary | escape }}</p>{% endif %}
                 {% if entry.highlights.size > 0 %}
                   <ul class="academic-cv__highlights">

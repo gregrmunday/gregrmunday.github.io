@@ -1,0 +1,35 @@
+# The map uses your existing _talks files, plus extra presentations below.
+# Add a location here when adding a talk in a new city. Match the location
+# text in the talk's front matter exactly. Coordinates are city centres.
+locations:
+  - name: Vienna, Austria
+    latitude: 48.2084
+    longitude: 16.3725
+  - name: Chicago, USA
+    latitude: 41.8781
+    longitude: -87.6298
+  - name: San Francisco, USA
+    latitude: 37.7749
+    longitude: -122.4194
+  - name: Utrecht, Netherlands
+    latitude: 52.0907
+    longitude: 5.1214
+
+# Exclude co-authored work you did not personally present, using its permalink.
+exclude_talks: []
+# Example:
+# exclude_talks:
+#   - /talks/2025-03-18-prime
+
+# Add presentations without creating a separate talk page here. Keep newest
+# first. A missing location or unknown coordinates still leaves a visible entry
+# in the list; the map never guesses a city.
+presentations: []
+# Example (replace [] above, then remove the # characters):
+#   - title: Title of my presentation
+#     venue: Conference name
+#     date: 2026-06-01
+#     year: "2026"
+#     type: Conference poster
+#     location: Vienna, Austria
+#     url: https://example.org/abstract
