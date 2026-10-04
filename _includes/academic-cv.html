@@ -1,0 +1,45 @@
+{% assign cv = site.data.academic_cv %}
+<div class="academic-cv">
+  <header class="academic-cv__intro">
+    <p class="academic-cv__role">{{ cv.role | escape }}</p>
+    <h2 class="academic-cv__name">{{ cv.name | escape }}</h2>
+    <p class="academic-cv__summary">{{ cv.summary | escape }}</p>
+    <div class="academic-cv__contact">
+      {% if cv.email and cv.email != empty %}<a href="mailto:{{ cv.email | escape }}">{{ cv.email | escape }}</a>{% endif %}
+      {% if cv.phone and cv.phone != empty %}<a href="tel:{{ cv.phone | remove: ' ' | escape }}">{{ cv.phone | escape }}</a>{% endif %}
+      {% if cv.pdf_url and cv.pdf_url != empty %}<a href="{{ cv.pdf_url | relative_url | escape }}">Download CV (PDF)</a>{% endif %}
+    </div>
+  </header>
+
+  <nav class="academic-cv__nav" aria-label="CV sections">
+    {% for section in cv.sections %}
+      {% if section.entries.size > 0 %}<a href="#{{ section.id | escape }}">{{ section.title | escape }}</a>{% endif %}
+    {% endfor %}
+  </nav>
+
+  {% for section in cv.sections %}
+    {% if section.entries.size > 0 %}
+      <section class="academic-cv__section" id="{{ section.id | escape }}" aria-labelledby="{{ section.id | escape }}-heading">
+        <h2 id="{{ section.id | escape }}-heading">{{ section.title | escape }}</h2>
+        <ul class="academic-cv__entries">
+          {% for entry in section.entries %}
+            <li class="academic-cv__entry{% unless entry.dates %} academic-cv__entry--undated{% endunless %}">
+              {% if entry.dates %}<p class="academic-cv__dates">{{ entry.dates | escape }}</p>{% endif %}
+              <div class="academic-cv__details">
+                <h3>{% if entry.url %}<a href="{{ entry.url | escape }}">{{ entry.title | escape }}</a>{% else %}{{ entry.title | escape }}{% endif %}</h3>
+                {% if entry.organisation %}<p class="academic-cv__organisation">{{ entry.organisation | escape }}</p>{% endif %}
+                {% if entry.summary %}<p>{{ entry.summary | escape }}</p>{% endif %}
+                {% if entry.highlights.size > 0 %}
+                  <ul class="academic-cv__highlights">
+                    {% for highlight in entry.highlights %}<li>{{ highlight | escape }}</li>{% endfor %}
+                  </ul>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+  {% endfor %}
+  <p class="academic-cv__footer">See <a href="{{ '/publications/' | relative_url }}">publications and conference contributions</a> for the full research output list.</p>
+</div>

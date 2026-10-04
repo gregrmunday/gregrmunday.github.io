@@ -1,0 +1,157 @@
+/* CV styling only. Edit text in _data/academic_cv.yml. */
+.academic-cv {
+  --cv-accent: var(--global-base-color);
+  max-width: 54rem;
+  font-size: 0.9rem;
+  line-height: 1.65;
+
+  &__intro {
+    border-left: 3px solid var(--cv-accent);
+    padding: 0.3rem 0 0.3rem 1.3rem;
+    margin: 1.5rem 0;
+  }
+  &__role {
+    margin: 0;
+    color: var(--cv-accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+  }
+  h2.academic-cv__name {
+    margin: 0.3rem 0 0.6rem;
+    font-size: 1.7rem;
+    letter-spacing: -0.025em;
+  }
+  &__summary {
+    margin: 0 0 0.85rem;
+    max-width: 46rem;
+  }
+  &__contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.2rem;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+  }
+
+  &__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.9rem;
+    padding: 1rem 0;
+    margin-bottom: 0.75rem;
+    border-top: 1px solid var(--global-border-color);
+    border-bottom: 1px solid var(--global-border-color);
+    font-size: 0.75rem;
+    a {
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  }
+  &__section {
+    margin: 2rem 0;
+    scroll-margin-top: 6rem;
+    > h2 {
+      font-size: 1.12rem;
+      letter-spacing: -0.015em;
+      margin: 0 0 1rem;
+      padding-bottom: 0.55rem;
+      border-bottom: 1px solid var(--global-border-color);
+    }
+  }
+  &__entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  &__entry {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    column-gap: 1.5rem;
+    margin: 0 0 1.25rem;
+  }
+  &__entry--undated {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  &__dates {
+    margin: 0.15rem 0 0;
+    font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
+  }
+  &__details {
+    min-width: 0;
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    p {
+      margin: 0.3rem 0 0;
+    }
+    .academic-cv__organisation {
+      margin-top: 0.1rem;
+      font-size: 0.85rem;
+    }
+  }
+  &__highlights {
+    margin: 0.45rem 0 0;
+    padding-left: 1.15rem;
+    li {
+      margin-bottom: 0.3rem;
+    }
+  }
+  &__footer {
+    padding-top: 1rem;
+    border-top: 1px solid var(--global-border-color);
+    font-size: 0.8rem;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--cv-accent);
+    outline-offset: 4px;
+  }
+
+  @media (max-width: 640px) {
+    &__entry {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 0.25rem;
+    }
+    &__intro {
+      padding-left: 1rem;
+    }
+    &__section {
+      margin: 1.5rem 0;
+    }
+  }
+}
+
+/* Print a standalone CV through the browser's Print menu. */
+@media print {
+  body:has(.academic-cv) {
+    background: white;
+    color: black;
+    .masthead, .sidebar, .page__footer, .academic-cv__nav {
+      display: none;
+    }
+    #main, .archive {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      float: none;
+    }
+    .academic-cv {
+      max-width: none;
+      font-size: 10pt;
+    }
+    .academic-cv__entry {
+      break-inside: avoid;
+    }
+    .academic-cv__section > h2 {
+      break-after: avoid;
+    }
+    a {
+      color: inherit;
+    }
+  }
+}

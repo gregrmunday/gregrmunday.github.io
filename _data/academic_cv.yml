@@ -1,0 +1,138 @@
+# Content for /cv/. Edit this file to update the page; no HTML is needed.
+# Keep entries newest first. Dates display exactly as written (quote years).
+# Entries need a title; organisation, dates, summary, url and highlights are optional.
+# Copy a section to add another. Use a unique id. Empty sections are hidden.
+
+name: Gregory Munday
+role: DPhil researcher · University of Oxford
+summary: >-
+  Climate modelling, machine learning and climate impacts.
+  Developing hybrid physics and AI approaches for atmospheric models,
+  alongside climate and sea-level emulators.
+email: gregory.munday@keble.ox.ac.uk
+# Leave blank or delete to use email-only contact.
+phone: "+44 7367 585154"
+# For a PDF download, add the file to files/ and set /files/your-cv.pdf here.
+pdf_url: ""
+
+sections:
+  - id: positions
+    title: Positions
+    entries:
+      - title: DPhil researcher
+        organisation: University of Oxford
+        dates: Oct 2025–present
+        summary: >-
+          Hybrid physics and AI parameterisations for SpeedyWeather.jl with
+          Milan Klöwer and Laura Mansfield, focusing on online learning,
+          physical constraints and generalisation. Continued development
+          of ProFSea-Climate and contributions to sea-level emulator intercomparison.
+
+      - title: Applied Climate Scientist / Project Scientist
+        organisation: Met Office
+        dates: Feb 2022–Oct 2025
+        summary: >-
+          Climate emulation, ecosystem impacts, sea-level projections and
+          flood attribution, alongside machine learning for lightning
+          prediction and climate-model downscaling.
+        highlights:
+          - "Lead author: ecosystem risks under overshoot (Nature Climate Change, 2025); co-author of the PRIME climate emulator paper (GMD, 2025)."
+          - "Led sea-level emulator development and COMPASS flood attribution analysis; mentored junior colleagues and delivered scientific software and training."
+
+      - title: Product Lead
+        organisation: i24
+        dates: Mar 2021–Jan 2022
+        summary: >-
+          FinTech app design and development with React and React Native;
+          business analytics, financial projections and pitch development.
+
+      - title: Student Ambassador
+        organisation: University of Exeter
+        dates: Jan 2019–Aug 2020
+        summary: University outreach, particularly for prospective students from low-income backgrounds.
+
+  - id: education
+    title: Education
+    entries:
+      - title: DPhil · Intelligent Earth
+        organisation: University of Oxford
+        dates: 2025–present
+        summary: UKRI Centre for Doctoral Training in AI for the Environment.
+      - title: MPhys (Honours) · Physics with Astrophysics
+        organisation: University of Exeter
+        dates: 2016–2020
+      - title: A levels
+        organisation: Abingdon School
+        dates: 2014–2016
+        summary: "Physics, Mathematics and Chemistry (all A); French AS (A)."
+
+  - id: awards
+    title: Awards and prizes
+    entries:
+      - title: Best Poster Award
+        organisation: Intelligent Earth CDT Conference
+        dates: "2026"
+      - title: Keble Graduate Support Fund Award
+        organisation: Keble College, University of Oxford
+        # Add dates: "YEAR" once confirmed.
+      - title: Keble Associate Study Award
+        organisation: Keble College, University of Oxford
+        # Add dates: "YEAR" once confirmed.
+      - title: Full doctoral scholarship
+        organisation: Intelligent Earth · UKRI CDT in AI for the Environment
+        dates: "2025"
+      # Add recent prizes here. Example (remove the # characters):
+      # - title: Name of prize
+      #   organisation: Awarding organisation
+      #   dates: "2026"
+      #   summary: A short description, if useful.
+      #   url: https://example.org/award
+
+  - id: service
+    title: Scientific service and outreach
+    entries:
+      - title: Session convener · Climate emulators
+        organisation: European Geosciences Union General Assembly
+        dates: "2025"
+      - title: Scientific presentations
+        dates: 2022–2024
+        summary: Talks and posters at AGU 2022, AGU 2023 and EGU 2024.
+      - title: Training and mentoring
+        organisation: Met Office
+        dates: 2022–2025
+        summary: Tutorials on Earth system model evaluation and mentoring of junior colleagues.
+
+  - id: reviewing
+    title: Reviewer for
+    entries:
+      - title: Geophysical Research Letters (GRL)
+        url: https://www.agu.org/Channel/Geophysical-Research-Letters
+      - title: Global Sustainability
+        url: https://www.cambridge.org/core/journals/global-sustainability
+        summary: Review of “Ten new insights in climate science”.
+      # Add further journals here; dates and a short summary are optional.
+
+  - id: experience
+    title: Research experience and skills
+    entries:
+      - title: Research internships
+        summary: >-
+          Three months in fluid dynamics at the Oxford Thermofluids Institute;
+          earlier placements at the University of Reading Meteorology Department
+          and Diamond Light Source.
+      - title: Scientific computing
+        summary: >-
+          Climate modelling and statistical emulation; machine learning,
+          deep learning and GPU computing; scientific software in Python
+          and work with Julia-based atmospheric models.
+
+  - id: extracurricular
+    title: Beyond research
+    entries:
+      - title: Music
+        summary: "Grade 8 Voice, Grade 6 Piano and Grade 4 Traditional Irish Violin, all with distinction."
+      - title: Photography
+        summary: Freelance photography for hospitality marketing, blogs and university societies.
+      - title: Outdoors
+        summary: Surfing and organising surf trips; climbing, snowboarding, mountain biking and running.
+      # Add societies, volunteering, leadership roles or other interests here.

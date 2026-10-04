@@ -1,0 +1,19 @@
+{% assign publications = site.data.orcid_publications %}
+{% for category in publications.categories %}
+  {% assign works = publications.works | where: "category", category.id %}
+  {% if works.size > 0 %}
+    <h2>{{ category.title | escape }}</h2>
+    <hr />
+    {% for work in works %}
+      <div class="list__item">
+        <article class="archive__item" itemscope itemtype="https://schema.org/ScholarlyArticle">
+          <h3 class="archive__item-title" itemprop="headline">
+            <a href="{{ work.url | default: work.orcid_url | escape }}" itemprop="url">{{ work.title | escape }}</a>
+          </h3>
+          <p>{% if work.venue != empty %}<i>{{ work.venue | escape }}</i>{% if work.year != empty %}, {% endif %}{% endif %}{{ work.year | escape }}{% if category.id != 'journal_articles' %} · {{ work.label | escape }}{% endif %}</p>
+          {% if work.doi != empty %}<p><a href="{{ work.url | escape }}">doi:{{ work.doi | escape }}</a></p>{% endif %}
+        </article>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endfor %}

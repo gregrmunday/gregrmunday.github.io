@@ -1,0 +1,50 @@
+name: Sync ORCID publications
+
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'scripts/sync_orcid.py'
+      - '_config.yml'
+      - '.github/workflows/sync_orcid.yml'
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: sync-orcid
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch public ORCID works
+        run: python scripts/sync_orcid.py
+      - name: Commit updated publications
+        run: |
+          if ! git diff --quiet -- _data/orcid_publications.json; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add _data/orcid_publications.json
+            git commit -m 'Refresh publications from ORCID'
+            git pull --rebase origin master
+            git push origin HEAD:master
+          fi
+      # Bot commits do not trigger the normal Pages build. Request it explicitly.
+      # Also retry on unchanged data so a failed previous build can recover.
+      - name: Rebuild GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"

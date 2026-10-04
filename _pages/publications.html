@@ -1,13 +1,16 @@
 ---
 layout: archive
+title: "Publications"
 permalink: /publications/
 author_profile: true
 ---
 
 {% include base_path %}
 
-<!-- New style rendering if publication categories are defined -->
-{% if site.publication_category %}
+{% if site.data.orcid_publications %}
+  <p>Publications and conference contributions from <a href="{{ site.data.orcid_publications.profile_url | escape }}">my ORCID record</a>, listed newest first within each section.</p>
+  {% include orcid-publications.html %}
+{% elsif site.publication_category %}
   {% for category in site.publication_category  %}
     {% assign title_shown = false %}
     {% for post in site.publications reversed %}
@@ -26,6 +29,5 @@ author_profile: true
     {% include archive-single.html %}
   {% endfor %}
 {% endif %}
-
 
 
