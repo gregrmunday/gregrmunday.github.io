@@ -8,7 +8,7 @@ author_profile: true
 {% include base_path %}
 
 {% if site.data.orcid_publications %}
-  <p class="publication-list__intro">From <a href="{{ site.data.orcid_publications.profile_url | escape }}">ORCID</a> · Newest first · Select a title to read the work.</p>
+  <p class="publication-list__intro">From <a href="{{ site.data.orcid_publications.profile_url | escape }}">ORCID</a>{% if site.data.publications.scholar_url %} and <a href="{{ site.data.publications.scholar_url | escape }}">Google Scholar</a>{% endif %} · Newest first · Select a title to read the work.</p>
   {% include orcid-publications.html %}
 {% elsif site.publication_category %}
   {% for category in site.publication_category  %}
@@ -29,4 +29,3 @@ author_profile: true
     {% include archive-single.html %}
   {% endfor %}
 {% endif %}
-

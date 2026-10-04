@@ -3,6 +3,9 @@
   --atlas-ink: var(--global-text-color);
   --atlas-accent: var(--global-base-color);
   --atlas-sea: #eef4f2;
+  --atlas-first: #2b9479;
+  --atlas-coauthor: #357ca9;
+  --atlas-unknown: #70857d;
   font-size: 0.85rem;
 
   [hidden] {
@@ -73,13 +76,141 @@
     fill: transparent;
   }
   &__halo {
-    fill: #2f7f93;
+    fill: var(--point-colour, #2f7f93);
     opacity: 0.18;
   }
   &__pin {
-    fill: #216b7b;
+    fill: var(--point-colour, #216b7b);
     stroke: white;
     stroke-width: 0.9;
+  }
+  &__marker[data-author-role="first-author"],
+  &__marker[data-author-role="presenter"],
+  &__talk-point[data-author-role="first-author"],
+  &__talk-point[data-author-role="presenter"] {
+    --point-colour: var(--atlas-first);
+  }
+  &__marker[data-author-role="co-author"],
+  &__talk-point[data-author-role="co-author"] {
+    --point-colour: var(--atlas-coauthor);
+  }
+  &__marker[data-author-role="unknown"],
+  &__talk-point[data-author-role="unknown"] {
+    --point-colour: var(--atlas-unknown);
+  }
+  &__marker[data-author-role="cluster"] &__pin {
+    fill: #f8fffc;
+    stroke: #49776b;
+    stroke-width: 0.65;
+  }
+  &__cluster-count {
+    fill: #31594e;
+    font-size: 3.3px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+  &__network, &__network-backdrop {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+  &__city--expanded &__network,
+  &__city--expanded &__network-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  &__network-link {
+    stroke: #8caaa0;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.75;
+    pointer-events: none;
+  }
+  &__talk-point {
+    cursor: pointer;
+    outline: none;
+    .talks-atlas__pin {
+      stroke: white;
+      stroke-width: 1.5;
+      vector-effect: non-scaling-stroke;
+    }
+  }
+  &__talk-point:hover &__pin,
+  &__talk-point:focus-visible &__pin {
+    stroke: #173d34;
+    stroke-width: 2;
+  }
+  &__tooltip {
+    position: absolute;
+    z-index: 2;
+    max-width: min(280px, calc(100% - 16px));
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #c5d8d0;
+    border-radius: 8px;
+    background: #fffffff2;
+    color: #25433a;
+    box-shadow: 0 4px 16px rgba(30, 65, 57, 0.12);
+    font-size: 12px;
+    line-height: 1.45;
+    pointer-events: none;
+    strong, small {
+      display: block;
+    }
+    small {
+      margin-top: 0.25rem;
+      font-size: 11px;
+    }
+  }
+  &__legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 1rem;
+    padding-top: 0.65rem;
+    font-size: 12px;
+    > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    small {
+      flex-basis: 100%;
+      font-size: 11px;
+    }
+  }
+  &__legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(92, 146, 127, 0.1);
+    &--first { background: var(--atlas-first); }
+    &--coauthor { background: var(--atlas-coauthor); }
+    &--unknown { background: var(--atlas-unknown); }
+  }
+  &__selection {
+    margin: 0.6rem 0 1rem;
+    padding: 0.6rem 0.75rem;
+    border-left: 2px solid var(--atlas-accent);
+    h3 { margin: 0 0 0.2rem; font-size: 0.8rem; }
+    span { font-size: 12px; }
+  }
+  &__entry--selected {
+    outline: 1px solid var(--atlas-accent);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+  &__role::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 0.3rem;
+    border-radius: 50%;
+    background: var(--atlas-coauthor);
+  }
+  &__entry[data-author-role="first-author"] &__role::before,
+  &__entry[data-author-role="presenter"] &__role::before {
+    background: var(--atlas-first);
   }
   &__marker:hover &__halo,
   &__marker:focus-visible &__halo,
@@ -202,6 +333,9 @@
       top: 0.4rem;
     }
   }
+}
+@media (prefers-reduced-motion: reduce) {
+  .talks-atlas__network, .talks-atlas__network-backdrop { transition: none; }
 }
 @media print {
   .talks-atlas__interactive {

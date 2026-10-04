@@ -1,6 +1,12 @@
-# Automatic publications
+# ORCID publications
 
-The publications page uses `_data/orcid_publications.json`, fetched from the public
+The website now merges ORCID works with Google Scholar conference entries.
+See [PUBLICATIONS.md](PUBLICATIONS.md) for the current refresh commands,
+duplicate matching rules and automatic workflow.
+
+## ORCID source
+
+The ORCID importer writes `_data/orcid_publications.json`, fetched from the public
 ORCID record configured in `author.orcid` in `_config.yml`. Only public works can
 appear. Edit publication metadata and visibility on ORCID to update the website.
 
@@ -8,7 +14,7 @@ Run `python3 scripts/sync_orcid.py` to refresh locally. The script uses only the
 Python standard library. To import a previously downloaded works response, use
 `python3 scripts/sync_orcid.py --source /path/to/works.json`.
 
-After the changes are pushed to `master`, **Sync ORCID publications** runs daily
+After the changes are pushed to `master`, **Sync publications from ORCID and Scholar** runs daily
 at 06:23 UTC, and can also be run from GitHub's Actions tab. It commits changed
 data and explicitly requests a Pages rebuild, because commits made with
 `GITHUB_TOKEN` do not trigger the usual automatic build. This matches this

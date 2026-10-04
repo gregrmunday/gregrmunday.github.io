@@ -50,5 +50,20 @@ when the map has focus; Escape resets the view. Touch users can select cities
 and use zoom controls while vertical page scrolling remains native. The full
 presentation list is available without JavaScript.
 
+Hovering over a city with multiple entries unfolds a spoke network, with one
+point per presentation in the selected year range. Selecting the city pins the
+network open for touch and keyboard users. Focus the city marker and press the
+down arrow to reach its individual points; Enter selects a point. Hover/focus
+shows its title and author role; selecting it shows linked details and highlights
+the corresponding entry. Spread distances stay constant in screen pixels while
+zooming. Larger groups use multiple rings.
+
+Author colours use the first name in the cached Scholar author list when a title
+and year match. Green is first author; blue is co-author. For an explicit override,
+add `author_role: first-author`, `co-author` or `presenter` to a talk's front matter
+or its entry in `_data/talkmap.yml`. Unmatched author order stays neutral rather
+than being guessed. The personally presented ScenarioMIP-CMIP7 / ProFSea entry
+at EGU26 uses `author_role: presenter` and is green; the legend explains this.
+
 Source: [Natural Earth land](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_land.geojson),
 [public-domain terms](https://www.naturalearthdata.com/about/terms-of-use/).

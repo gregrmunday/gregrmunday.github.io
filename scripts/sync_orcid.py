@@ -11,6 +11,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
+from publication_metadata import normalize_doi
+
 ROOT = Path(__file__).resolve().parents[1]
 CATEGORIES = [
     ("journal_articles", "Journal articles"),
@@ -49,7 +51,7 @@ def normalize(summary, orcid):
     doi = next((item["external-id-value"].strip() for item in identifiers
                 if item.get("external-id-type") == "doi"
                 and item.get("external-id-relationship") == "self"), "")
-    doi = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", doi, flags=re.I)
+    doi = normalize_doi(doi)
     # Copernicus imports meeting abstracts as preprints in ORCID.
     conference_doi = re.match(r"^10\.5194/(?:egusphere-)?(?:egu|ems)\d{2,4}-", doi, re.I)
     if "conference" in work_type or work_type in {"lecture-speech", "poster"} or conference_doi:

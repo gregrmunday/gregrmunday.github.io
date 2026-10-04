@@ -5,7 +5,25 @@
 {% else %}
   {% assign year = presentation.date | date: '%Y' %}
 {% endif %}
+{% comment %}Use Scholar author order when available; allow explicit per-talk overrides.{% endcomment %}
+{% assign author_role = presentation.author_role | default: 'unknown' %}
+{% assign presentation_slug = presentation.title | slugify %}
+{% unless presentation.author_role %}
+  {% for scholar_work in site.data.scholar_publications.works %}
+    {% assign scholar_slug = scholar_work.title | slugify %}
+    {% if scholar_slug == presentation_slug and scholar_work.year == year %}
+      {% assign first_author = scholar_work.authors | split: ',' | first | strip | remove: '.' %}
+      {% if first_author == 'G Munday' or first_author == 'Gregory Munday' %}
+        {% assign author_role = 'first-author' %}
+      {% else %}
+        {% assign author_role = 'co-author' %}
+      {% endif %}
+      {% break %}
+    {% endif %}
+  {% endfor %}
+{% endunless %}
 <article class="talks-atlas__entry"
+  data-author-role="{{ author_role | escape }}"
   data-location="{{ presentation.location | escape }}"
   data-year="{{ year | escape }}"
   {% if coordinates %}data-latitude="{{ coordinates.latitude }}" data-longitude="{{ coordinates.longitude }}"{% endif %}>
@@ -13,6 +31,7 @@
     <span>{{ year | escape }}</span>
     {% if presentation.type %}<span>{{ presentation.type | escape }}</span>{% endif %}
     {% if presentation.abstract_id %}<span>{{ presentation.abstract_id | escape }}</span>{% endif %}
+    {% if author_role == 'first-author' %}<span class="talks-atlas__role">First author</span>{% elsif author_role == 'presenter' %}<span class="talks-atlas__role">Presenting author</span>{% elsif author_role == 'co-author' %}<span class="talks-atlas__role">Co-author</span>{% endif %}
   </div>
   <h3>
     {% if presentation.url %}

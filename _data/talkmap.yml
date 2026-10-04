@@ -25,6 +25,16 @@ exclude_talks: []
 # first. A missing location or unknown coordinates still leaves a visible entry
 # in the list; the map never guesses a city.
 presentations:
+  - title: Multi-century sea-level projections and human impacts under the indicative ScenarioMIP-CMIP7 forcings
+    venue: EGU General Assembly 2026
+    year: "2026"
+    type: Conference presentation
+    location: Vienna, Austria
+    abstract_id: EGU26-18937
+    author_role: presenter # Gregory presented this co-authored ProFSea contribution.
+    url: https://doi.org/10.5194/egusphere-egu26-18937
+    source: https://scholar.google.com/citations?view_op=view_citation&user=xtzdb1IAAAAJ&citation_for_view=xtzdb1IAAAAJ:5nxA0vEk-isC
+
   # These talks are listed on Gregory's Google Scholar profile but not ORCID.
   # Only the publication month is recorded, so no exact talk day is inferred.
   - title: "Showcasing PRIME: Probabilistic Regional Impacts from Model patterns and Emissions"
@@ -46,6 +56,8 @@ presentations:
     source: https://scholar.google.com/citations?view_op=view_citation&user=xtzdb1IAAAAJ&citation_for_view=xtzdb1IAAAAJ:u-x6o8ySG0sC
 
 # To add another presentation, copy the fields above or use this example:
+# Author colours normally come from Scholar's author order. To set one explicitly,
+# add author_role: first-author, co-author, or presenter (green override).
 #   - title: Title of my presentation
 #     venue: Conference name
 #     date: 2026-06-01

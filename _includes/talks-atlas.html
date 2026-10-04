@@ -13,16 +13,24 @@
         <image href="{{ '/assets/images/talkmap-world.svg' | relative_url }}" width="360" height="180" aria-hidden="true" />
         <g data-map-markers></g>
       </svg>
+      <div class="talks-atlas__tooltip" data-map-tooltip hidden></div>
       <div class="talks-atlas__zoom" aria-label="Map controls">
         <button type="button" data-map-zoom="in" aria-label="Zoom in">+</button>
         <button type="button" data-map-zoom="out" aria-label="Zoom out">−</button>
         <button type="button" data-map-reset aria-label="Reset world map">↺</button>
       </div>
-      <span class="talks-atlas__map-caption" aria-hidden="true">A world of shared ideas</span>
+      <span class="talks-atlas__map-caption" aria-hidden="true"></span>
       <a class="talks-atlas__credit" href="https://www.naturalearthdata.com/">Natural Earth</a>
     </div>
+    <div class="talks-atlas__legend" aria-label="Presentation colours">
+      <span><i class="talks-atlas__legend-dot talks-atlas__legend-dot--first" aria-hidden="true"></i>First author</span>
+      <span><i class="talks-atlas__legend-dot talks-atlas__legend-dot--coauthor" aria-hidden="true"></i>Co-author</span>
+      <span data-legend-unknown hidden><i class="talks-atlas__legend-dot talks-atlas__legend-dot--unknown" aria-hidden="true"></i>Author order unconfirmed</span>
+      <small data-legend-presenter hidden>My ProFSea 2026 presentation is also shown in green.</small>
+    </div>
     <div class="talks-atlas__cities" data-map-cities aria-label="Filter by conference city"></div>
-    <p class="talks-atlas__hint">Select a city to explore its presentations. Drag the map or use the zoom controls.</p>
+    <p class="talks-atlas__hint">Hover over or select a city to unfold its presentations. Select an individual point for details.</p>
+    <div class="talks-atlas__selection" data-map-selection aria-live="polite" hidden></div>
   </div>
 
   <div class="talks-atlas__list-header">
