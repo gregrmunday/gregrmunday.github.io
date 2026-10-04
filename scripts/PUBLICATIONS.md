@@ -61,9 +61,14 @@ Read the individual fetch steps in Actions to see source failures.
 
 Checks: `python3 -m unittest discover -s scripts -p 'test_publications.py'`.
 
-The Talks map uses a separate list of personally delivered presentations in
-`_talks/` and `_data/talkmap.yml`. Adding a co-authored conference work here does
-not add it to that map.
+The Talks map reads the **same merged conference records** as Publications.
+New conference entries and title/link corrections appear on both pages after
+the next refresh/build. No separate title list needs updating. Author order is
+retained from Scholar when ORCID does not supply it. Both pages apply the shared
+`_includes/conference-metadata.html` annotations from `_data/talkmap.yml`.
+Use those annotations to confirm who presented, specify talk/poster format,
+and associate meetings with cities; these manual details survive source refreshes.
+See [TALKMAP.md](TALKMAP.md) for examples.
 
 References: [ORCID identifiers](https://info.orcid.org/documentation/integration-guide/orcid-and-persistent-identifiers/),
 [Google Scholar help](https://scholar.google.com/intl/en/scholar/help.html).

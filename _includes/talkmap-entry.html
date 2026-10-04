@@ -1,37 +1,18 @@
 {% assign presentation = include.presentation %}
-{% assign coordinates = site.data.talkmap.locations | where: 'name', presentation.location | first %}
-{% if presentation.year %}
-  {% assign year = presentation.year %}
-{% else %}
-  {% assign year = presentation.date | date: '%Y' %}
-{% endif %}
-{% comment %}Use Scholar author order when available; allow explicit per-talk overrides.{% endcomment %}
-{% assign author_role = presentation.author_role | default: 'unknown' %}
-{% assign presentation_slug = presentation.title | slugify %}
-{% unless presentation.author_role %}
-  {% for scholar_work in site.data.scholar_publications.works %}
-    {% assign scholar_slug = scholar_work.title | slugify %}
-    {% if scholar_slug == presentation_slug and scholar_work.year == year %}
-      {% assign first_author = scholar_work.authors | split: ',' | first | strip | remove: '.' %}
-      {% if first_author == 'G Munday' or first_author == 'Gregory Munday' %}
-        {% assign author_role = 'first-author' %}
-      {% else %}
-        {% assign author_role = 'co-author' %}
-      {% endif %}
-      {% break %}
-    {% endif %}
-  {% endfor %}
-{% endunless %}
+{% include conference-metadata.html work=presentation %}
+{% assign coordinates = site.data.talkmap.locations | where: 'name', conference_location | first %}
+{% assign year = presentation.year %}
 <article class="talks-atlas__entry"
-  data-author-role="{{ author_role | escape }}"
-  data-location="{{ presentation.location | escape }}"
+  data-conference-key="{{ conference_key | escape }}"
+  data-author-role="{{ presentation_role | escape }}"
+  data-location="{{ conference_location | escape }}"
   data-year="{{ year | escape }}"
   {% if coordinates %}data-latitude="{{ coordinates.latitude }}" data-longitude="{{ coordinates.longitude }}"{% endif %}>
   <div class="talks-atlas__entry-meta">
     <span>{{ year | escape }}</span>
-    {% if presentation.type %}<span>{{ presentation.type | escape }}</span>{% endif %}
+    {% if conference_type %}<span>{{ conference_type | escape }}</span>{% endif %}
     {% if presentation.abstract_id %}<span>{{ presentation.abstract_id | escape }}</span>{% endif %}
-    {% if author_role == 'first-author' %}<span class="talks-atlas__role">First author</span>{% elsif author_role == 'presenter' %}<span class="talks-atlas__role">Presenting author</span>{% elsif author_role == 'co-author' %}<span class="talks-atlas__role">Co-author</span>{% endif %}
+    {% if presentation_role == 'first-author' %}<span class="talks-atlas__role">First author</span>{% elsif presentation_role == 'presenter' %}<span class="talks-atlas__role">Presenting author</span>{% elsif presentation_role == 'co-author' %}<span class="talks-atlas__role">Co-author</span>{% endif %}
   </div>
   <h3>
     {% if presentation.url %}
@@ -40,5 +21,5 @@
       <a href="{{ entry_url | escape }}">{{ presentation.title | escape }}</a>
     {% else %}{{ presentation.title | escape }}{% endif %}
   </h3>
-  <p>{{ presentation.venue | escape }}{% if presentation.location %}<span> · {{ presentation.location | escape }}</span>{% endif %}</p>
+  <p>{{ presentation.venue | escape }}{% if conference_location %}<span> · {{ conference_location | escape }}</span>{% else %}<span> · Location not yet added</span>{% endif %}</p>
 </article>

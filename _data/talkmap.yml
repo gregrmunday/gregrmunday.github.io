@@ -1,6 +1,8 @@
-# The map uses your existing _talks files, plus extra presentations below.
-# Add a location here when adding a talk in a new city. Match the location
-# text in the talk's front matter exactly. Coordinates are city centres.
+# Titles, years, abstracts and links come from _data/publications.json on BOTH
+# pages. This file contains only information ORCID/Scholar cannot reliably tell us.
+include_all_conferences: true
+
+# Add coordinates once per city; unknown locations remain in the list.
 locations:
   - name: Vienna, Austria
     latitude: 48.2084
@@ -11,57 +13,64 @@ locations:
   - name: San Francisco, USA
     latitude: 37.7749
     longitude: -122.4194
+  - name: Washington, DC, USA
+    latitude: 38.9072
+    longitude: -77.0369
   - name: Utrecht, Netherlands
     latitude: 52.0907
     longitude: 5.1214
 
-# Exclude co-authored work you did not personally present, using its permalink.
-exclude_talks: []
-# Example:
-# exclude_talks:
-#   - /talks/2025-03-18-prime
-
-# Add presentations without creating a separate talk page here. Keep newest
-# first. A missing location or unknown coordinates still leaves a visible entry
-# in the list; the map never guesses a city.
-presentations:
-  - title: Multi-century sea-level projections and human impacts under the indicative ScenarioMIP-CMIP7 forcings
-    venue: EGU General Assembly 2026
-    year: "2026"
-    type: Conference presentation
+# Meeting names match the merged bibliography's venue. Add each new meeting here
+# once, rather than repeating its location for every abstract.
+meetings:
+  EGU 2024:
     location: Vienna, Austria
-    abstract_id: EGU26-18937
-    author_role: presenter # Gregory presented this co-authored ProFSea contribution.
-    url: https://doi.org/10.5194/egusphere-egu26-18937
-    source: https://scholar.google.com/citations?view_op=view_citation&user=xtzdb1IAAAAJ&citation_for_view=xtzdb1IAAAAJ:5nxA0vEk-isC
-
-  # These talks are listed on Gregory's Google Scholar profile but not ORCID.
-  # Only the publication month is recorded, so no exact talk day is inferred.
-  - title: "Showcasing PRIME: Probabilistic Regional Impacts from Model patterns and Emissions"
-    venue: AGU Fall Meeting 2023
-    year: "2023"
-    type: Conference talk
-    location: San Francisco, USA
-    abstract_id: GC23D-04
-    url: https://ui.adsabs.harvard.edu/abs/2023AGUFMGC23D..04M/abstract
-    source: https://scholar.google.com/citations?view_op=view_citation&user=xtzdb1IAAAAJ&citation_for_view=xtzdb1IAAAAJ:UeHWp8X0CEIC
-
-  - title: FaIR-IMOGEN-Patterns for Impacts
-    venue: AGU Fall Meeting 2022
-    year: "2022"
-    type: Conference talk
+  EGU 2025:
+    location: Vienna, Austria
+  EGU 2026:
+    location: Vienna, Austria
+    source: https://www.egu26.eu/attendance/venue.html
+  EMS 2026:
+    location: Utrecht, Netherlands
+    source: https://www.emetsoc.org/ems-annual-meeting-2026-programme-is-live/
+  AGU 2022:
     location: Chicago, USA
-    abstract_id: GC26E-04
-    url: https://ui.adsabs.harvard.edu/abs/2022AGUFMGC26E..04M/abstract
-    source: https://scholar.google.com/citations?view_op=view_citation&user=xtzdb1IAAAAJ&citation_for_view=xtzdb1IAAAAJ:u-x6o8ySG0sC
+  AGU 2023:
+    location: San Francisco, USA
+  AGU 2024:
+    location: Washington, DC, USA
+    source: https://www.agu.org/annual-meeting-2024/press
 
-# To add another presentation, copy the fields above or use this example:
-# Author colours normally come from Scholar's author order. To set one explicitly,
-# add author_role: first-author, co-author, or presenter (green override).
-#   - title: Title of my presentation
-#     venue: Conference name
-#     date: 2026-06-01
-#     year: "2026"
-#     type: Conference poster
-#     location: Vienna, Austria
-#     url: https://example.org/abstract
+# Stable keys: DOI if present, otherwise "venue:abstract_id".
+# presented_by_gregory: true makes a co-authored contribution green while keeping
+# its actual author order. show_on_map is used if include_all_conferences is false.
+# Optional fields: type, location, author_role (first-author/co-author/unknown).
+overrides:
+  "AGU 2022:GC26E-04":
+    presented_by_gregory: true
+    show_on_map: true
+    type: Conference talk
+  "AGU 2023:GC23D-04":
+    presented_by_gregory: true
+    show_on_map: true
+    type: Conference talk
+  "AGU 2024:B41E-02":
+    author_role: co-author
+    show_on_map: true
+    type: Conference talk
+  "10.5194/egusphere-egu26-18937":
+    presented_by_gregory: true
+    show_on_map: true
+    type: Conference presentation
+  "10.5194/egusphere-egu25-14775":
+    show_on_map: true
+    type: Conference poster
+  "10.5194/egusphere-egu25-11014":
+    show_on_map: true
+    type: Conference poster
+  "10.5194/egusphere-egu25-11574":
+    show_on_map: true
+    type: Conference poster
+  "10.5194/egusphere-egu25-18398":
+    show_on_map: true
+    type: Conference poster

@@ -1,5 +1,5 @@
 <div class="talks-atlas" data-talks-atlas>
-  <p class="talks-atlas__intro">Conference talks and posters, around the world.</p>
+  <p class="talks-atlas__intro">Conference talks, posters and co-authored contributions, around the world.</p>
   <div class="talks-atlas__interactive" hidden>
     <div class="talks-atlas__toolbar">
       <p class="talks-atlas__count" data-map-count aria-live="polite"></p>
@@ -23,10 +23,10 @@
       <a class="talks-atlas__credit" href="https://www.naturalearthdata.com/">Natural Earth</a>
     </div>
     <div class="talks-atlas__legend" aria-label="Presentation colours">
-      <span><i class="talks-atlas__legend-dot talks-atlas__legend-dot--first" aria-hidden="true"></i>First author</span>
+      <span><i class="talks-atlas__legend-dot talks-atlas__legend-dot--first" aria-hidden="true"></i>First / presenting author</span>
       <span><i class="talks-atlas__legend-dot talks-atlas__legend-dot--coauthor" aria-hidden="true"></i>Co-author</span>
       <span data-legend-unknown hidden><i class="talks-atlas__legend-dot talks-atlas__legend-dot--unknown" aria-hidden="true"></i>Author order unconfirmed</span>
-      <small data-legend-presenter hidden>My ProFSea 2026 presentation is also shown in green.</small>
+      <small data-legend-presenter hidden>Green also includes co-authored contributions I personally presented.</small>
     </div>
     <div class="talks-atlas__cities" data-map-cities aria-label="Filter by conference city"></div>
     <p class="talks-atlas__hint">Hover over or select a city to unfold its presentations. Select an individual point for details.</p>
@@ -39,14 +39,13 @@
   </div>
   <p data-map-empty hidden>No presentations match this selection.</p>
   <div class="talks-atlas__list">
-    {% assign talks = site.talks | sort: 'date' | reverse %}
-    {% for presentation in talks %}
-      {% unless site.data.talkmap.exclude_talks contains presentation.url %}
+    {% assign publications = site.data.publications | default: site.data.orcid_publications %}
+    {% assign conferences = publications.works | where: 'category', 'conferences' %}
+    {% for presentation in conferences %}
+      {% include conference-metadata.html work=presentation %}
+      {% if conference_on_map %}
         {% include talkmap-entry.html presentation=presentation %}
-      {% endunless %}
-    {% endfor %}
-    {% for presentation in site.data.talkmap.presentations %}
-      {% include talkmap-entry.html presentation=presentation %}
+      {% endif %}
     {% endfor %}
   </div>
 </div>

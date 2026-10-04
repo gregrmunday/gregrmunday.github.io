@@ -30,7 +30,8 @@ def merge(orcid, scholar):
             if duplicate:
                 if source not in duplicate["sources"]:
                     duplicate["sources"].append(source)
-                for key in ("doi", "abstract_id"):
+                # Scholar supplies author order absent from ORCID's works summary.
+                for key in ("doi", "abstract_id", "authors"):
                     if not duplicate.get(key) and work.get(key):
                         duplicate[key] = work[key]
                 if not duplicate.get("url") and work.get("url"):

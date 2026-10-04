@@ -1,0 +1,29 @@
+{% comment %}
+Shared conference annotations for Publications and Talks. Keys use a normalised
+DOI, or "VENUE:ABSTRACT" when no DOI exists. Never match by a mutable title.
+{% endcomment %}
+{% assign conference_work = include.work %}
+{% assign conference_key = conference_work.doi %}
+{% if conference_key == nil or conference_key == empty %}
+  {% assign conference_identifier = conference_work.abstract_id | default: conference_work.scholar_id | default: conference_work.put_code | default: conference_work.title %}
+  {% assign conference_key = conference_work.venue | append: ':' | append: conference_identifier %}
+{% endif %}
+{% assign conference_details = site.data.talkmap.overrides[conference_key] %}
+{% assign conference_meeting = site.data.talkmap.meetings[conference_work.venue] %}
+{% assign conference_location = conference_details.location | default: conference_meeting.location %}
+{% assign conference_type = conference_details.type | default: conference_work.label %}
+{% assign author_role = conference_details.author_role | default: 'unknown' %}
+{% if author_role == 'unknown' and conference_work.authors and conference_work.authors != empty %}
+  {% assign first_author = conference_work.authors | split: ',' | first | strip | remove: '.' %}
+  {% if first_author == 'G Munday' or first_author == 'Gregory Munday' %}
+    {% assign author_role = 'first-author' %}
+  {% else %}
+    {% assign author_role = 'co-author' %}
+  {% endif %}
+{% endif %}
+{% assign presentation_role = author_role %}
+{% if conference_details.presented_by_gregory %}
+  {% assign presentation_role = 'presenter' %}
+{% endif %}
+{% assign conference_on_map = site.data.talkmap.include_all_conferences %}
+{% if conference_details.show_on_map %}{% assign conference_on_map = true %}{% endif %}
