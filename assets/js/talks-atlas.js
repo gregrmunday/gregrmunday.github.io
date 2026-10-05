@@ -35,11 +35,11 @@
   root.querySelector('[data-legend-presenter]').hidden = !entries.some(entry => entry.dataset.authorRole === 'presenter');
   root.querySelector('[data-legend-unknown]').hidden = !entries.some(entry => entry.dataset.authorRole === 'unknown');
 
-  // Sort the combined talk pages and extra entries, with newest years first.
-  entries.sort((a, b) => Number(b.dataset.year) - Number(a.dataset.year));
+  // Newest years first; undated personal records remain at the end.
+  entries.sort((a, b) => (Number(b.dataset.year) || 0) - (Number(a.dataset.year) || 0));
   entries.forEach(entry => root.querySelector('.talks-atlas__list').append(entry));
-  const years = [...new Set(entries.map(entry => entry.dataset.year))].sort().reverse();
-  years.forEach(year => yearSelect.add(new Option(year, year)));
+  const years = [...new Set(entries.map(entry => entry.dataset.year))].sort((a, b) => (Number(b) || 0) - (Number(a) || 0));
+  years.forEach(year => yearSelect.add(new Option(year === 'undated' ? 'Date not recorded' : year, year)));
 
   entries.forEach(entry => {
     if (!entry.hasAttribute('data-latitude')) return;
@@ -149,11 +149,15 @@
     return entry.dataset.authorLabel || roleLabels[roleFor(entry)];
   }
 
+  function yearLabelFor(entry) {
+    return entry.dataset.year === 'undated' ? 'Date not recorded' : entry.dataset.year;
+  }
+
   function showTooltip(entry, marker, city = null) {
     const title = document.createElement('strong');
     title.textContent = entry.querySelector('h3').textContent.trim();
     const meta = document.createElement('small');
-    meta.textContent = `${entry.dataset.year} · ${roleLabelFor(entry)}`;
+    meta.textContent = `${yearLabelFor(entry)} · ${roleLabelFor(entry)}`;
     tooltip.replaceChildren(title, meta);
     tooltip.hidden = false;
     const mapRect = svg.parentElement.getBoundingClientRect();
@@ -183,7 +187,7 @@
     expandCity(city);
     const title = entry.querySelector('h3').cloneNode(true);
     const meta = document.createElement('span');
-    meta.textContent = `${entry.dataset.year} · ${city.name} · ${roleLabelFor(entry)}`;
+    meta.textContent = `${yearLabelFor(entry)} · ${city.name} · ${roleLabelFor(entry)}`;
     selection.replaceChildren(title, meta);
     selection.hidden = false;
   }
@@ -239,7 +243,7 @@
       const marker = svgElement('g', {
         class: 'talks-atlas__talk-point', role: 'button', tabindex: '-1',
         'data-author-role': roleFor(entry),
-        'aria-label': `${entry.dataset.year}: ${entry.querySelector('h3').textContent.trim()}. ${roleLabelFor(entry)}. Select for details.`
+        'aria-label': `${yearLabelFor(entry)}: ${entry.querySelector('h3').textContent.trim()}. ${roleLabelFor(entry)}. Select for details.`
       });
       const hit = svgElement('circle', { class: 'talks-atlas__hit' });
       const pin = svgElement('circle', { class: 'talks-atlas__pin' });
@@ -329,7 +333,7 @@
     allCitiesButton.setAttribute('aria-pressed', String(!selectedCity));
     root.querySelector('[data-map-count]').textContent = `${yearEntries.length} presentation${yearEntries.length === 1 ? '' : 's'} · ${mappedCities.length} ${mappedCities.length === 1 ? 'city' : 'cities'}`;
     heading.textContent = selectedCity || 'All presentations';
-    if (yearSelect.value !== 'all') heading.textContent += ` · ${yearSelect.value}`;
+    if (yearSelect.value !== 'all') heading.textContent += ` · ${yearSelect.value === 'undated' ? 'Date not recorded' : yearSelect.value}`;
     clearButton.hidden = !selectedCity;
     root.querySelector('[data-map-empty]').hidden = visibleEntries.length > 0;
     if (selectedEntry && !visibleEntries.includes(selectedEntry)) {

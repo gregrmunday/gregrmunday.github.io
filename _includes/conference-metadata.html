@@ -5,7 +5,7 @@ DOI, or "VENUE:ABSTRACT" when no DOI exists. Never match by a mutable title.
 {% assign conference_work = include.work %}
 {% assign conference_key = conference_work.doi %}
 {% if conference_key == nil or conference_key == empty %}
-  {% assign conference_identifier = conference_work.abstract_id | default: conference_work.scholar_id | default: conference_work.put_code | default: conference_work.title %}
+  {% assign conference_identifier = conference_work.abstract_id | default: conference_work.record_id | default: conference_work.scholar_id | default: conference_work.put_code | default: conference_work.title %}
   {% assign conference_key = conference_work.venue | append: ':' | append: conference_identifier %}
 {% endif %}
 {% assign conference_details = site.data.talkmap.overrides[conference_key] %}

@@ -553,6 +553,26 @@
           "url": "https://scholar.google.com/citations?view_op=view_citation&hl=en&oe=ASCII&user=xtzdb1IAAAAJ&pagesize=100&citation_for_view=xtzdb1IAAAAJ:u-x6o8ySG0sC"
         }
       ]
+    },
+    {
+      "record_id": "borno-surface-roughness-workshop",
+      "title": "A learned surface roughness scheme for climate prediction in SpeedyWeather.jl",
+      "type": "workshop-talk",
+      "category": "conferences",
+      "label": "Workshop talk",
+      "year": "",
+      "sort_date": "0000-00-00",
+      "venue": "Climate modelling workshop, Bornö",
+      "doi": "",
+      "url": "",
+      "source_name": "Personal record confirmed by Gregory Munday",
+      "source_url": "",
+      "sources": [
+        {
+          "name": "Personal record confirmed by Gregory Munday",
+          "url": ""
+        }
+      ]
     }
   ]
 }

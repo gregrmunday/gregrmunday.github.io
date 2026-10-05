@@ -23,9 +23,12 @@
       {% assign conference_key = nil %}
       {% if work.category == 'conferences' %}{% include conference-metadata.html work=work %}{% endif %}
       <li class="publication-list__entry{% if work.category == 'journal_articles' %} publication-list__entry--journal{% endif %}"{% if conference_key %} data-conference-key="{{ conference_key | escape }}" data-author-role="{{ presentation_role | escape }}"{% endif %}{% if work.doi != empty %} data-doi="{{ work.doi | escape }}"{% endif %}{% if work.abstract_id %} data-abstract-id="{{ work.abstract_id | escape }}"{% endif %}>
-        <span class="publication-list__year">{% if work.category == 'journal_articles' and work.first_author %}{{ work.first_author | escape }}{% if work.author_count > 1 %} et al.{% endif %} {% endif %}{{ work.year | escape }}</span>
+        <span class="publication-list__year">{% if work.category == 'journal_articles' and work.first_author %}{{ work.first_author | escape }}{% if work.author_count > 1 %} et al.{% endif %} {% endif %}{{ work.year | default: 'Undated' | escape }}</span>
         <div>
-          <a class="publication-list__title" href="{{ work.url | default: work.orcid_url | escape }}"{% if work.doi != empty %} title="doi:{{ work.doi | escape }}"{% endif %}>{{ work.title | escape }}</a>
+          {% assign work_url = work.url | default: work.orcid_url %}
+          {% if work_url and work_url != empty %}
+          <a class="publication-list__title" href="{{ work_url | escape }}"{% if work.doi != empty %} title="doi:{{ work.doi | escape }}"{% endif %}>{{ work.title | escape }}</a>
+          {% else %}<span class="publication-list__title">{{ work.title | escape }}</span>{% endif %}
           {% if work.venue != empty %}<span class="publication-list__venue"> · {{ work.venue | escape }}</span>{% endif %}
           {% if work.abstract_id %}<span class="publication-list__identifier"> · {{ work.abstract_id | escape }}</span>{% endif %}
           {% if work.category == 'conferences' and presentation_role == 'presenter' %}<span class="publication-list__identifier"> · Presenting author</span>{% endif %}

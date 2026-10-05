@@ -14,8 +14,13 @@ def merge(orcid, scholar, additional=None):
             work = copy.deepcopy(raw)
             work["doi"] = normalize_doi(work.get("doi"))
             source_url = work.get("scholar_url") if name == "Google Scholar" else work.get("orcid_url")
-            source = {"name": work.get("source_name", name),
-                      "url": source_url or work.get("source_url") or data.get("profile_url") or work.get("url", "")}
+            # An explicit empty source URL denotes a personal record with no
+            # public page; do not attribute it to another meeting's profile.
+            if "source_url" in work:
+                source_url = work["source_url"]
+            else:
+                source_url = source_url or data.get("profile_url") or work.get("url", "")
+            source = {"name": work.get("source_name", name), "url": source_url or ""}
             if work["category"] == "conferences":
                 meeting, abstract = conference_identity(work)
                 # Conference years come from identifiers, not abstract deposit dates.

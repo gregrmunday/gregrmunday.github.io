@@ -1,5 +1,5 @@
 {
-  "profile_url": "https://juliacon.org/2026/",
+  "profile_url": "",
   "works": [
     {
       "title": "A learned surface roughness scheme for climate prediction in SpeedyWeather.jl",
@@ -15,6 +15,20 @@
       "url": "https://pretalx.com/juliacon-2026/talk/U9ZWXZ/",
       "source_name": "JuliaCon programme",
       "source_url": "https://pretalx.com/juliacon-2026/talk/U9ZWXZ/"
+    },
+    {
+      "record_id": "borno-surface-roughness-workshop",
+      "title": "A learned surface roughness scheme for climate prediction",
+      "type": "workshop-talk",
+      "category": "conferences",
+      "label": "Workshop talk",
+      "year": "",
+      "sort_date": "2026-08-04",
+      "venue": "Climate modelling workshop, Bornö",
+      "doi": "",
+      "url": "",
+      "source_name": "Personal record confirmed by Gregory Munday",
+      "source_url": ""
     }
   ]
 }

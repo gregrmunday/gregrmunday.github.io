@@ -13,6 +13,9 @@ Confirmed programme records missing from the automated sources can be added
 to `_data/additional_publications.json` and merged with
 `python3 scripts/merge_publications.py`. The JuliaCon 2026 presentation uses
 this maintained input; it appears in both sections and survives daily refreshes.
+The Bornö workshop entry is a personally confirmed talk without a public URL.
+It is green as a presenting-author contribution. Its year remains undated until
+confirmed; undated entries have their own year-filter option and stay at the end.
 
 `_data/talkmap.yml` contains only manual annotations: meeting locations,
 author/presenter confirmations, and talk/poster formats. Source refreshes do
@@ -24,7 +27,8 @@ to interpret these annotations, so presenter details stay consistent too.
 Under `overrides`, use the normalised DOI as the key. For an abstract without a
 DOI, use `venue:abstract_id`, for example `AGU 2024:B41E-02`. These identifiers
 continue to match when a title changes. For records without an abstract ID,
-the key falls back to venue + Scholar ID, ORCID put-code, or title.
+the key falls back to venue + an explicit `record_id`, Scholar ID, ORCID
+put-code, or title. Use `record_id` for personal talks without formal identifiers.
 
 ```yaml
 overrides:

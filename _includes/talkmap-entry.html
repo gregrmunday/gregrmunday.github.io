@@ -1,7 +1,7 @@
 {% assign presentation = include.presentation %}
 {% include conference-metadata.html work=presentation %}
 {% assign coordinates = site.data.talkmap.locations | where: 'name', conference_location | first %}
-{% assign year = presentation.year %}
+{% assign year = presentation.year | default: 'undated' %}
 <article class="talks-atlas__entry"
   data-conference-key="{{ conference_key | escape }}"
   data-author-role="{{ presentation_role | escape }}"
@@ -11,13 +11,13 @@
   data-year="{{ year | escape }}"
   {% if coordinates %}data-latitude="{{ coordinates.latitude }}" data-longitude="{{ coordinates.longitude }}"{% endif %}>
   <div class="talks-atlas__entry-meta">
-    <span>{{ year | escape }}</span>
+    <span>{% if year == 'undated' %}Date not recorded{% else %}{{ year | escape }}{% endif %}</span>
     {% if conference_type %}<span>{{ conference_type | escape }}</span>{% endif %}
     {% if presentation.abstract_id %}<span>{{ presentation.abstract_id | escape }}</span>{% endif %}
     {% if presentation_role != 'unknown' %}<span class="talks-atlas__role">{{ presentation_role_label | escape }}</span>{% endif %}
   </div>
   <h3>
-    {% if presentation.url %}
+    {% if presentation.url and presentation.url != empty %}
       {% assign entry_url = presentation.url %}
       {% unless entry_url contains '://' %}{% assign entry_url = entry_url | relative_url %}{% endunless %}
       <a href="{{ entry_url | escape }}">{{ presentation.title | escape }}</a>

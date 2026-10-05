@@ -22,10 +22,16 @@ locations:
   - name: Mainz, Germany
     latitude: 49.9929
     longitude: 8.2473
+  - name: Bornö, Sweden
+    latitude: 58.38
+    longitude: 11.58
+    source: https://en.wikipedia.org/wiki/Born%C3%B6_Marine_Research_Station
 
 # Meeting names match the merged bibliography's venue. Add each new meeting here
 # once, rather than repeating its location for every abstract.
 meetings:
+  Climate modelling workshop, Bornö:
+    location: Bornö, Sweden
   JuliaCon 2026:
     location: Mainz, Germany
     source: https://juliacon.org/2026/
@@ -53,6 +59,10 @@ meetings:
 # Optional fields: type, location, author_role (first-author/co-author/unknown),
 # author_position (a confirmed numeric position in the author list).
 overrides:
+  "Climate modelling workshop, Bornö:borno-surface-roughness-workshop":
+    presented_by_gregory: true
+    show_on_map: true
+    type: Workshop talk
   "JuliaCon 2026:U9ZWXZ":
     author_position: 1
     show_on_map: true

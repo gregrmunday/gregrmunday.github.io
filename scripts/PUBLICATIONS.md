@@ -78,6 +78,15 @@ or Scholar, the merge retains one entry with both sources. A similar EGU talk
 remains a separate conference contribution. Configure its location and author
 role in `_data/talkmap.yml` as usual; both home-page sections use the merged list.
 
+Personal workshop talks without an online record can use empty `doi`, `url`
+and `source_url` fields, with `source_name` describing the personal confirmation.
+Give them a stable `record_id` rather than inventing an abstract identifier.
+The Bornö climate-modelling workshop talk is such a record. Its title is plain
+text in both lists, with no fabricated external link. An unknown year is stored
+as `year: ""`, `sort_date: "0000-00-00"` and displayed as undated; replace those
+fields when the date is confirmed. A workshop name should include its location
+to distinguish similarly named events.
+
 ## Automatic refresh
 
 The existing `.github/workflows/sync_orcid.yml` workflow now refreshes both
