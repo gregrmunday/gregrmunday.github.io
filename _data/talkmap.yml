@@ -19,10 +19,16 @@ locations:
   - name: Utrecht, Netherlands
     latitude: 52.0907
     longitude: 5.1214
+  - name: Mainz, Germany
+    latitude: 49.9929
+    longitude: 8.2473
 
 # Meeting names match the merged bibliography's venue. Add each new meeting here
 # once, rather than repeating its location for every abstract.
 meetings:
+  JuliaCon 2026:
+    location: Mainz, Germany
+    source: https://juliacon.org/2026/
   EGU 2024:
     location: Vienna, Austria
   EGU 2025:
@@ -47,6 +53,10 @@ meetings:
 # Optional fields: type, location, author_role (first-author/co-author/unknown),
 # author_position (a confirmed numeric position in the author list).
 overrides:
+  "JuliaCon 2026:U9ZWXZ":
+    author_position: 1
+    show_on_map: true
+    type: Conference talk
   "10.5194/ems2026-226":
     author_role: co-author
     author_position: 2 # Confirmed by Gregory; keep this blue, not unconfirmed.

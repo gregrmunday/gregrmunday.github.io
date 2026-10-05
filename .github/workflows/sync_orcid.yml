@@ -12,6 +12,7 @@ on:
       - 'scripts/publication_metadata.py'
       - 'scripts/merge_publications.py'
       - 'scripts/test_publications.py'
+      - '_data/additional_publications.json'
       - '_config.yml'
       - '.github/workflows/sync_orcid.yml'
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge cached ORCID works and Scholar conferences into the website bibliography."""
+"""Merge ORCID, Scholar and additional programme records into one bibliography."""
 
 import copy
 import json
@@ -7,20 +7,22 @@ import json
 from publication_metadata import ROOT, conference_identity, display_abstract_id, normalize_doi, same_work, write_cache
 
 
-def merge(orcid, scholar):
+def merge(orcid, scholar, additional=None):
     works = []
-    for name, data in (("ORCID", orcid), ("Google Scholar", scholar)):
+    for name, data in (("ORCID", orcid), ("Google Scholar", scholar), ("Conference programme", additional or {})):
         for raw in data.get("works", []):
             work = copy.deepcopy(raw)
             work["doi"] = normalize_doi(work.get("doi"))
             source_url = work.get("scholar_url") if name == "Google Scholar" else work.get("orcid_url")
-            source = {"name": name, "url": source_url or data["profile_url"]}
+            source = {"name": work.get("source_name", name),
+                      "url": source_url or work.get("source_url") or data.get("profile_url") or work.get("url", "")}
             if work["category"] == "conferences":
                 meeting, abstract = conference_identity(work)
                 # Conference years come from identifiers, not abstract deposit dates.
-                if meeting.startswith(("egu:", "ems:", "agu:")):
+                if meeting.startswith(("egu:", "ems:", "agu:", "juliacon:")):
                     organisation, year = meeting.split(":")
-                    work["venue"] = f"{organisation.upper()} {year}"
+                    organisation_label = "JuliaCon" if organisation == "juliacon" else organisation.upper()
+                    work["venue"] = f"{organisation_label} {year}"
                     if work["year"] != year:
                         work["sort_date"] = year + "-00-00"
                     work["year"] = year
@@ -50,9 +52,11 @@ def main():
     orcid = json.loads((ROOT / "_data/orcid_publications.json").read_text())
     scholar_path = ROOT / "_data/scholar_publications.json"
     scholar = json.loads(scholar_path.read_text()) if scholar_path.exists() else {"works": []}
-    data = merge(orcid, scholar)
+    additional_path = ROOT / "_data/additional_publications.json"
+    additional = json.loads(additional_path.read_text()) if additional_path.exists() else {"works": []}
+    data = merge(orcid, scholar, additional)
     write_cache(ROOT / "_data/publications.json", data)
-    print(f"Merged {len(orcid['works'])} ORCID works and {len(scholar['works'])} Scholar conferences into {len(data['works'])} unique entries")
+    print(f"Merged {len(orcid['works'])} ORCID works, {len(scholar['works'])} Scholar conferences and {len(additional['works'])} additional records into {len(data['works'])} unique entries")
 
 
 if __name__ == "__main__":

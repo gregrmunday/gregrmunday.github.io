@@ -15,6 +15,7 @@ the PDF directly.
 | Email, awards, reviewer entries and service | `_data/academic_cv.yml` |
 | Extracurricular activities and photos | `_data/extracurricular.yml` |
 | Conference locations and presenter confirmations | `_data/talkmap.yml` |
+| Verified conference records missing from ORCID/Scholar | `_data/additional_publications.json` |
 | Menu labels and section links | `_data/navigation.yml` |
 
 The sidebar displays only the `awards`, `reviewing` and `service` sections of

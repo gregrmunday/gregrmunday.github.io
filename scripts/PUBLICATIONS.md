@@ -3,7 +3,8 @@
 `_data/publications.json` is the merged list rendered in the home-page
 `/#publications` section. `/publications/` redirects there.
 Its inputs are `_data/orcid_publications.json` (papers, preprints and conference
-works) and `_data/scholar_publications.json` (conference entries only).
+works), `_data/scholar_publications.json` (conference entries only), and
+`_data/additional_publications.json` (confirmed records from other sources).
 The profile URLs come from `author.orcid` and `author.googlescholar` in
 `_config.yml`. ORCID metadata takes precedence for matching entries; each merged
 work also records its sources.
@@ -61,6 +62,21 @@ separate from their published papers. Conference years are taken from abstract
 identifiers where available, so an EGU24 abstract deposited in 2025 is listed
 under 2024. DOI and abstract IDs are retained in the data and rendered as HTML
 metadata; abstract codes also appear beside conference titles.
+
+## Conference records missing from ORCID and Scholar
+
+Add verified records to the `works` array in `_data/additional_publications.json`,
+then run `python3 scripts/merge_publications.py`. This is a maintained input,
+not a generated cache: daily refreshes preserve these entries. Record the
+official abstract/programme URL in `source_url`, with a clear `source_name`.
+Use `doi: ""` when none is supplied; do not reuse a DOI from another conference.
+
+The JuliaCon 2026 entry comes from the official Pretalx programme (U9ZWXZ,
+12 August 2026). JuliaCon records are matched by meeting/year and Pretalx code,
+then by title if a code is unavailable. If the record later appears in ORCID
+or Scholar, the merge retains one entry with both sources. A similar EGU talk
+remains a separate conference contribution. Configure its location and author
+role in `_data/talkmap.yml` as usual; both home-page sections use the merged list.
 
 ## Automatic refresh
 

@@ -46,6 +46,11 @@ def conference_identity(work):
     if re.search(r"AGU|American Geophysical Union", text, re.I):
         match = re.search(r"\b([A-Z]{1,3}\d{2}[A-Z]-\d{2,4})\b", text)
         return f"agu:{work['year']}", match[1] if match else ""
+    if re.search(r"JuliaCon", text, re.I):
+        # Pretalx programme codes provide a stable identity even if a title changes.
+        match = re.search(r"/juliacon-\d{4}/talk/([A-Z0-9]+)", text, re.I)
+        abstract = work.get("abstract_id") or (match[1] if match else "")
+        return f"juliacon:{work['year']}", abstract.upper()
     return normalized_title(work.get("venue", "")) + ":" + str(work.get("year", "")), ""
 
 

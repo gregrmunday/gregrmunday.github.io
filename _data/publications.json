@@ -59,6 +59,27 @@
       ]
     },
     {
+      "title": "A learned surface roughness scheme for climate prediction in SpeedyWeather.jl",
+      "authors": "Gregory Munday, Laura Mansfield, Maximilian Gelbrecht, Niklas Viebig, Milan Klöwer",
+      "type": "conference-talk",
+      "category": "conferences",
+      "label": "Conference talk",
+      "year": "2026",
+      "sort_date": "2026-08-12",
+      "venue": "JuliaCon 2026",
+      "doi": "",
+      "abstract_id": "U9ZWXZ",
+      "url": "https://pretalx.com/juliacon-2026/talk/U9ZWXZ/",
+      "source_name": "JuliaCon programme",
+      "source_url": "https://pretalx.com/juliacon-2026/talk/U9ZWXZ/",
+      "sources": [
+        {
+          "name": "JuliaCon programme",
+          "url": "https://pretalx.com/juliacon-2026/talk/U9ZWXZ/"
+        }
+      ]
+    },
+    {
       "put_code": 220919714,
       "title": "Permafrost carbon release scales linearly with overshoot warming mediated by AMOC tipping",
       "type": "journal-article",

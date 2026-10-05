@@ -9,6 +9,10 @@ into a second map list. A newly imported conference contribution automatically
 appears on both pages. Existing `_talks/` detail pages remain accessible, but no
 longer supply the map list.
 The old `/talks/` and `/talkmap.html` addresses redirect to `/#talks`.
+Confirmed programme records missing from the automated sources can be added
+to `_data/additional_publications.json` and merged with
+`python3 scripts/merge_publications.py`. The JuliaCon 2026 presentation uses
+this maintained input; it appears in both sections and survives daily refreshes.
 
 `_data/talkmap.yml` contains only manual annotations: meeting locations,
 author/presenter confirmations, and talk/poster formats. Source refreshes do
