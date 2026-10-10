@@ -1,9 +1,12 @@
 // Spherical, daily-mean anomaly EBM. No dependencies and no frame history.
 import { brdf, clamp } from './model.mjs';
 export { clamp };
+import { FairResponse } from './fair-ebm.mjs';
+import { PRESENT_CO2 } from './co2-baseline.mjs';
+import { directOcean, diffuseOcean } from './jin-ocean.mjs';
 export const RADIUS=6371000, YEAR=365.2422, DAY=86400, TAU=2*Math.PI;
 export const ECS=[2.5,3,4], DOUBLING=5.35*Math.log(2);
-export const DEFAULTS={co2:280,eccentricity:.0167,tilt:23.44,scatter:.3,width:120};
+export const DEFAULTS={co2:280,eccentricity:.0167,tilt:23.44,scatter:.3,width:120,wind:5};
 export const forcing=co2=>5.35*Math.log(co2/280);
 const mod=(x,n)=>(x%n+n)%n;
 export function orbit(day,config=DEFAULTS) {
@@ -62,18 +65,19 @@ export function gaussianScatter(values,grid,edges,width,scratch) {
 // Eight-point Gauss–Legendre integration over sunlit hour angles for BRDF kernels.
 const GLX=[-.9602898564975363,-.7966664774136267,-.525532409916329,-.1834346424956498,.1834346424956498,.525532409916329,.7966664774136267,.9602898564975363];
 const GLW=[.1012285362903763,.2223810344533745,.3137066458778873,.362683783378362,.362683783378362,.3137066458778873,.2223810344533745,.1012285362903763];
-export function dailySun(grid,day,config,incoming,vol,geo) {
+export function dailySun(grid,day,config,incoming,vol,geo,ocean) {
   const state=orbit(day,config),sd=Math.sin(state.declination),cd=Math.cos(state.declination);let integral=0;
   for(let r=0;r<grid.rows;r++){
     const a=Math.sin(grid.latitudes[r])*sd,b=Math.cos(grid.latitudes[r])*cd;
     const H=b<1e-14?(a>0?Math.PI:0):Math.acos(clamp(-a/b,-1,1));
     incoming[r]=Math.max(0,state.solar/Math.PI*(H*a+b*Math.sin(H)));
-    let total=0,v=0,g=0;
+    let total=0,v=0,g=0,o=0;
     for(let k=0;k<8;k++){
       const cosine=Math.max(0,a+b*Math.cos(H*GLX[k])),theta=Math.acos(clamp(cosine)),weight=GLW[k]*cosine;
+      if(ocean)o+=weight*directOcean(cosine,config.wind);
       total+=weight;v+=weight*(-.007574+theta*theta*(-.070987+.307588*theta));g+=weight*(-1.284909+theta*theta*(-.166314+.04184*theta));
     }
-    vol[r]=total?v/total:0;geo[r]=total?g/total:0;
+    vol[r]=total?v/total:0;geo[r]=total?g/total:0;if(ocean)ocean[r]=total?o/total:diffuseOcean(config.wind);
     integral+=incoming[r]*grid.area[grid.offsets[r]]*grid.counts[r];
   }
   // Remove midpoint-area quadrature error so global incoming is exactly S(r)/4.
@@ -82,29 +86,22 @@ export function dailySun(grid,day,config,incoming,vol,geo) {
   return state;
 }
 function noise(seed) { let state=seed>>>0;return()=>{state+=0x6D2B79F5;let t=state;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;}; }
-function landShape(lat,lon,seed) {
-  // Illustrative continents, deliberately not a downloaded Earth dataset.
-  const shift=(seed%37-18)*Math.PI/180;
-  const masses=[[-105,43,40,30],[-60,-17,23,43],[15,8,36,39],[68,48,65,30],[135,-25,22,17],[-43,72,15,15]];
-  let score=-10;const phi=lat*180/Math.PI,lambda=lon*180/Math.PI;
-  for(const [x,y,sx,sy] of masses){const dx=mod(lambda-x+180,360)-180,dy=phi-y;score=Math.max(score,1-dx*dx/(sx*sx)-dy*dy/(sy*sy));}
-  return Math.max(score+.16*Math.sin(lon*9+shift)*Math.cos(lat*11)+.07*Math.sin(lon*23-lat*17),(-phi-69)/9);
-}
 export class Planet {
-  constructor({spacing=100,seed=42,...config}={}) {
-    this.config={...DEFAULTS,...config};this.grid=sphericalGrid(spacing);const n=this.grid.count;this.edges=graph(this.grid);
+  constructor({spacing=100,seed=42,landMask,...config}={}) {
+    if(!(landMask instanceof Uint8Array)||landMask.length!==32400)throw new Error("The Earth land–ocean mask is missing or invalid");
+    this.config={...DEFAULTS,co2:PRESENT_CO2.ppm,...config};this.startDay=Number(config.startDay)||0;this.responses=ECS.map(ecs=>new FairResponse(ecs,DOUBLING));this.grid=sphericalGrid(spacing);const n=this.grid.count;this.edges=graph(this.grid);
     this.kinds=new Uint8Array(n);this.coefficients=new Float64Array(n*3);this.baseScatter=new Float32Array(n);this.scatterFactor=new Float32Array(n);
     this.override=new Float32Array(n).fill(NaN);this.capacity=new Float64Array(n);this.referenceT=new Float32Array(n);
-    this.anomalies=ECS.map(()=>new Float64Array(n));this.seasonalT=new Float64Array(n);this.baselineAnnual=new Float64Array(n);
+    this.localAnomaly=new Float64Array(n);this.localMean=0;this.seasonalT=new Float64Array(n);this.baselineAnnual=new Float64Array(n);
     this.absorbed=new Float64Array(n);this.referenceAbsorbed=new Float64Array(n);this.direct=new Float64Array(n);this.diffuse=new Float64Array(n);this.scratch=new Float64Array(n);
     this.albedo=new Float32Array(n);this.fraction=new Float32Array(n);this.net=new Float32Array(n);this.incoming=new Float32Array(n);
-    this.sunRow=new Float64Array(this.grid.rows);this.volRow=new Float64Array(this.grid.rows);this.geoRow=new Float64Array(this.grid.rows);
+    this.sunRow=new Float64Array(this.grid.rows);this.volRow=new Float64Array(this.grid.rows);this.geoRow=new Float64Array(this.grid.rows);this.oceanRow=new Float64Array(this.grid.rows);
     this.elapsed=0;this.heat=0;this.rolling=new Float64Array(366);this.rollingSum=0;this.rollingIndex=0;this.rollingCount=0;this.history=[];
     const rng=noise(seed);
     for(let i=0;i<n;i++){
-      const lat=this.grid.latitude[i],lon=this.grid.longitude[i],land=landShape(lat,lon,seed)>0,t=14-40*(Math.sin(lat)**2-1/3);
+      const lat=this.grid.latitude[i],lon=this.grid.longitude[i],pixel=Math.min(359,Math.floor((lat+Math.PI/2)/Math.PI*360))*720+Math.min(719,Math.floor((lon+Math.PI)/TAU*720)),land=Boolean(landMask[pixel>>>3]&(1<<(pixel&7))),t=14-40*(Math.sin(lat)**2-1/3);
       const polar=Math.abs(lat)>1.17,arid=Math.abs(Math.abs(lat)-.46)<.14;
-      const kind=!land?(polar?1:0):polar?5:arid?4:rng()>.38?2:3;
+      const kind=!land?(polar?1:0):polar?5:arid?4:(Math.sin(lon*4+lat*7)+Math.cos(lon*9-lat*3)>.1?2:3);
       this.kinds[i]=kind;this.referenceT[i]=t;this.capacity[i]=land?2e7:2.1e8;
       const factor=clamp(.85+.32*Math.sin(3*lon+lat)*Math.cos(4*lat)+.18*Math.sin(8*lon-5*lat),.25,1.6);
       this.baseScatter[i]=factor;this.scatterFactor[i]=factor;
@@ -115,7 +112,8 @@ export class Planet {
     }
   }
   shortwave(day,config,reference=false,target=this.absorbed) {
-    const grid=this.grid,n=grid.count;this.orbital=dailySun(grid,day,config,this.sunRow,this.volRow,this.geoRow);
+    const grid=this.grid,n=grid.count;this.orbital=dailySun(grid,day,config,this.sunRow,this.volRow,this.geoRow,this.oceanRow);
+    const oceanWhite=diffuseOcean(config.wind);
     for(let i=0;i<n;i++){
       const radiation=this.sunRow[grid.rowOf[i]],f=clamp(config.scatter*(reference?this.baseScatter[i]:this.scatterFactor[i]),0,.95);
       this.direct[i]=radiation*(1-f);this.diffuse[i]=radiation*f;
@@ -124,57 +122,68 @@ export class Planet {
     for(let i=0;i<n;i++){
       const row=grid.rowOf[i],offset=i*3,iso=this.coefficients[offset],v=this.coefficients[offset+1],g=this.coefficients[offset+2];
       let black=clamp(iso+this.volRow[row]*v+this.geoRow[row]*g),white=clamp(iso+.189184*v-1.377622*g);
+      if(this.kinds[i]<2){black=this.kinds[i]===1?.6:this.oceanRow[row];white=this.kinds[i]===1?.6:oceanWhite;}
       if(!reference&&Number.isFinite(this.override[i]))black=white=this.override[i];
-      const incoming=this.direct[i]+diffuse[i],reflected=this.direct[i]*black+diffuse[i]*white;
+      const incoming=this.direct[i]+diffuse[i],reflected=clamp(incoming>0?(this.direct[i]*black+diffuse[i]*white)/incoming:white)*incoming;
       target[i]=incoming-reflected;
       if(!reference){this.incoming[i]=incoming;this.albedo[i]=incoming>0?reflected/incoming:white;this.fraction[i]=incoming>0?diffuse[i]/incoming:clamp(config.scatter*this.scatterFactor[i],0,.95);}
     }
   }
   async initialize(yieldProgress=async()=>{}) {
-    // Fixed 280 ppm reference orbit: changes to controls do not recalibrate it away.
+    // Solve a periodic reference season analytically instead of spinning up years.
+    const n=this.grid.count,B=DOUBLING/3,interval=YEAR*DAY/48,decay=new Float64Array(n),cycle=new Float64Array(n);
+    for(let i=0;i<n;i++)decay[i]=Math.exp(-B*interval/this.capacity[i]);
     for(let k=0;k<48;k++){
-      this.shortwave((k+.5)*YEAR/48,DEFAULTS,true,this.referenceAbsorbed);
-      for(let i=0;i<this.grid.count;i++)this.baselineAnnual[i]+=this.referenceAbsorbed[i]/48;
+      this.shortwave(this.startDay+(k+.5)*YEAR/48,DEFAULTS,true,this.referenceAbsorbed);
+      for(let i=0;i<n;i++){
+        const q=this.referenceAbsorbed[i];this.baselineAnnual[i]+=q/48;
+        cycle[i]=cycle[i]*decay[i]+q/B*(1-decay[i]);
+      }
       if(k%8===7)await yieldProgress((k+1)/48);
     }
+    for(let i=0;i<n;i++)this.seasonalT[i]=cycle[i]/(-Math.expm1(-B*YEAR*DAY/this.capacity[i]))-this.baselineAnnual[i]/B;
+    // A deliberate equilibrium-at-present-CO2 starting state, not historical Earth.
+    const F=forcing(this.config.co2);for(const response of this.responses)response.equilibrate(F);
+    this.localAnomaly.fill(F/B);this.localMean=F/B;
     this.diagnose();this.record();
   }
   calculate(day) {
-    this.shortwave(day,DEFAULTS,true,this.referenceAbsorbed);
-    this.shortwave(day,this.config,false,this.absorbed);
+    this.shortwave(this.startDay+day,DEFAULTS,true,this.referenceAbsorbed);
+    this.shortwave(this.startDay+day,this.config,false,this.absorbed);
   }
   step() {
-    this.calculate(this.elapsed+.5);const F=forcing(this.config.co2),n=this.grid.count;let heat=0;
+    this.calculate(this.elapsed+.5);const F=forcing(this.config.co2),n=this.grid.count,B=DOUBLING/3;let referenceHeat=0,shortwaveForcing=0,localMean=0;
     for(let i=0;i<n;i++){
-      const C=this.capacity[i],referenceForce=this.referenceAbsorbed[i]-this.baselineAnnual[i],previous=this.anomalies[1][i]+this.seasonalT[i];
-      const B=DOUBLING/3,referenceEquilibrium=referenceForce/B;
-      this.seasonalT[i]=referenceEquilibrium+(this.seasonalT[i]-referenceEquilibrium)*Math.exp(-B*DAY/C);
-      const perturbation=this.absorbed[i]-this.referenceAbsorbed[i]+F;
-      for(let k=0;k<3;k++){
-        const feedback=DOUBLING/ECS[k],equilibrium=perturbation/feedback,x=this.anomalies[k];
-        x[i]=equilibrium+(x[i]-equilibrium)*Math.exp(-feedback*DAY/C);
-      }
-      heat+=C*(this.anomalies[1][i]+this.seasonalT[i]-previous)*this.grid.area[i];
+      const C=this.capacity[i],previous=this.seasonalT[i],referenceForce=this.referenceAbsorbed[i]-this.baselineAnnual[i],weight=this.grid.area[i]/(4*Math.PI);
+      const referenceEquilibrium=referenceForce/B;
+      this.seasonalT[i]=referenceEquilibrium+(previous-referenceEquilibrium)*Math.exp(-B*DAY/C);
+      const delta=this.absorbed[i]-this.referenceAbsorbed[i];shortwaveForcing+=delta*weight;
+      const equilibrium=(delta+F)/B;
+      this.localAnomaly[i]=equilibrium+(this.localAnomaly[i]-equilibrium)*Math.exp(-B*DAY/C);localMean+=this.localAnomaly[i]*weight;
+      referenceHeat+=C*(this.seasonalT[i]-previous)*this.grid.area[i];
     }
-    this.heat+=heat*RADIUS*RADIUS;this.elapsed++;this.diagnose(false);
+    this.localMean=localMean;
+    const central=this.responses[1],previousHeat=central.heat();for(const response of this.responses)response.step(shortwaveForcing+F);
+    const energy=referenceHeat*RADIUS*RADIUS+(central.heat()-previousHeat)*YEAR*DAY*4*Math.PI*RADIUS*RADIUS;
+    this.heat+=energy;this.elapsed++;this.diagnose(false);
     if(this.rollingCount===366)this.rollingSum-=this.rolling[this.rollingIndex];else this.rollingCount++;
-    this.rolling[this.rollingIndex]=heat/(DAY*4*Math.PI);this.rollingSum+=this.rolling[this.rollingIndex];this.rollingIndex=(this.rollingIndex+1)%366;
+    this.rolling[this.rollingIndex]=energy/(DAY*4*Math.PI*RADIUS*RADIUS);this.rollingSum+=this.rolling[this.rollingIndex];this.rollingIndex=(this.rollingIndex+1)%366;
     this.record();
   }
   diagnose(refresh=true) {
     if(refresh)this.calculate(this.elapsed+.5);
-    const F=forcing(this.config.co2),means=[0,0,0];let incoming=0,absorbed=0,referenceNet=0,perturbedNet=0,temperature=0,scatter=0,albedo=0;
+    const F=forcing(this.config.co2),means=this.responses.map(response=>response.temperature[0]);let incoming=0,absorbed=0,referenceNet=0,perturbedNet=0,temperature=0,scatter=0,albedo=0;
     for(let i=0;i<this.grid.count;i++){
       const weight=this.grid.area[i]/(4*Math.PI),baselineN=this.referenceAbsorbed[i]-this.baselineAnnual[i]-DOUBLING/3*this.seasonalT[i];
-      const deltaN=this.absorbed[i]-this.referenceAbsorbed[i]+F-DOUBLING/3*this.anomalies[1][i];
+      const anomaly=this.localAnomaly[i]-this.localMean+means[1];
+      const deltaN=this.absorbed[i]-this.referenceAbsorbed[i]+F-DOUBLING/3*anomaly;
       this.net[i]=baselineN+deltaN;
-      for(let k=0;k<3;k++)means[k]+=this.anomalies[k][i]*weight;
       incoming+=this.incoming[i]*weight;absorbed+=this.absorbed[i]*weight;referenceNet+=baselineN*weight;perturbedNet+=deltaN*weight;
-      temperature+=(this.referenceT[i]+this.seasonalT[i]+this.anomalies[1][i])*weight;scatter+=this.fraction[i]*weight;albedo+=this.albedo[i]*this.incoming[i]*weight;
+      temperature+=(this.referenceT[i]+this.seasonalT[i]+this.localAnomaly[i]-this.localMean+this.responses[1].temperature[0])*weight;scatter+=this.fraction[i]*weight;albedo+=this.albedo[i]*this.incoming[i]*weight;
     }
     this.metrics={day:this.elapsed,temperature,warming:means[1],lower:Math.min(...means),upper:Math.max(...means),scenarioWarming:means,
       incoming,absorbed,reflected:incoming-absorbed,outgoing:absorbed-referenceNet-perturbedNet,imbalance:referenceNet+perturbedNet,perturbation:perturbedNet,
-      forcing:F,scatter,albedo:incoming>0?albedo/incoming:0,heat:this.heat/1e21,annual:this.rollingCount>=365?this.rollingSum/this.rollingCount:null,orbital:this.orbital};
+      forcing:F,shortwaveForcing:perturbedNet-F+DOUBLING/3*means[1],layers:Array.from(this.responses[1].temperature),scatter,albedo:incoming>0?albedo/incoming:0,heat:this.heat/1e21,annual:this.rollingCount>=365?this.rollingSum/this.rollingCount:null,orbital:this.orbital};
   }
   record() {
     // Monthly summaries, bounded history: temperatures, not per-cell snapshots.
@@ -199,10 +208,10 @@ export class Planet {
   inspect(index) {
     if(index<0||index>=this.grid.count)return null;
     return {index,latitude:this.grid.latitude[index]*180/Math.PI,longitude:this.grid.longitude[index]*180/Math.PI,kind:this.kinds[index],area:this.grid.area[index]*RADIUS*RADIUS/1e6,
-      albedo:this.albedo[index],override:Number.isFinite(this.override[index])?this.override[index]:null,factor:this.scatterFactor[index],diffuse:this.fraction[index],temperature:this.referenceT[index]+this.seasonalT[index]+this.anomalies[1][index],incoming:this.incoming[index],net:this.net[index]};
+      albedo:this.albedo[index],override:Number.isFinite(this.override[index])?this.override[index]:null,factor:this.scatterFactor[index],diffuse:this.fraction[index],temperature:this.referenceT[index]+this.seasonalT[index]+this.localAnomaly[index]-this.localMean+this.responses[1].temperature[0],incoming:this.incoming[index],net:this.net[index]};
   }
   frame(target=new Float32Array(this.grid.count*5)) {
-    for(let i=0;i<this.grid.count;i++){const j=i*5;target[j]=this.referenceT[i]+this.seasonalT[i]+this.anomalies[1][i];target[j+1]=this.albedo[i];target[j+2]=this.fraction[i];target[j+3]=this.net[i];target[j+4]=this.anomalies[1][i];}
+    for(let i=0;i<this.grid.count;i++){const j=i*5;target[j]=this.referenceT[i]+this.seasonalT[i]+this.localAnomaly[i]-this.localMean+this.responses[1].temperature[0];target[j+1]=this.albedo[i];target[j+2]=this.fraction[i];target[j+3]=this.net[i];target[j+4]=this.localAnomaly[i]-this.localMean+this.responses[1].temperature[0];}
     return target;
   }
 }

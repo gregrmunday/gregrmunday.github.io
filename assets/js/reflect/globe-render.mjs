@@ -13,11 +13,11 @@ void main(){
  float stars=step(.998,hash(floor(gl_FragCoord.xy/2.)));background+=stars*.18;
  float rim=exp(-pow((r-1.025)*26.,2.))*.12; background+=vec3(.25,.6,.7)*rim;
  if(r>1.){gl_FragColor=vec4(background,1.);return;}
- vec3 normal=rotate(vec3(p/radius,sqrt(max(0.,1.-r*r))));
+ vec3 cameraNormal=vec3(p/radius,sqrt(max(0.,1.-r*r))),normal=rotate(cameraNormal);
  float lat=asin(clamp(normal.y,-1.,1.)),lon=atan(normal.x,normal.z);
  vec4 tex=texture2D(map,vec2((lon+PI)/(2.*PI),(lat+PI/2.)/PI));
  vec3 sun=normalize(vec3(-.75, sin(declination),.65*cos(declination)));
- float light=dot(normal,sun),shade=.42+.58*smoothstep(-.16,.65,light);
+ float light=dot(cameraNormal,sun),shade=.42+.58*smoothstep(-.16,.65,light);
  vec3 color=tex.rgb;
  if(mode<.5){
    float kind=floor(tex.a*255./32.+.1);float detail=hash(floor(vec2(lon,lat)*1000.));
@@ -37,7 +37,7 @@ void main(){
 function mix(a,b,f,target){for(let j=0;j<3;j++)target[j]=a[j]+(b[j]-a[j])*f;}
 export class GlobeRenderer {
   constructor(canvas) {
-    this.canvas=canvas;this.yaw=-.45;this.pitch=.18;this.zoom=1;this.selection=null;this.mode='surface';this.fields=null;this.grid=null;
+    this.canvas=canvas;this.yaw=-.45;this.spin=0;this.pitch=.18;this.zoom=1;this.selection=null;this.mode='surface';this.fields=null;this.grid=null;
     this.gl=canvas.getContext('webgl',{alpha:false,antialias:false,depth:false,stencil:false,preserveDrawingBuffer:false,powerPreference:'low-power'});
     if(!this.gl){this.fallback=canvas.getContext('2d');return;}
     const gl=this.gl,shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};
@@ -49,13 +49,15 @@ export class GlobeRenderer {
     this.texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   }
   setGrid(grid,kinds) {
-    this.grid=grid;this.kinds=kinds;this.fallbackKey=null;this.textureWidth=720;this.textureHeight=360;
+    this.grid=grid;this.kinds=kinds;this.colorMode=null;this.fallbackKey=null;this.textureWidth=720;this.textureHeight=360;
     this.lookup=new Uint32Array(this.textureWidth*this.textureHeight);this.pixels=new Uint8Array(this.lookup.length*4);this.cellColors=new Uint8Array(grid.count*4);
     for(let y=0;y<this.textureHeight;y++)for(let x=0;x<this.textureWidth;x++)this.lookup[y*this.textureWidth+x]=cellAt(grid,-Math.PI/2+(y+.5)*Math.PI/this.textureHeight,-Math.PI+(x+.5)*TAU/this.textureWidth);
     if(this.gl){const gl=this.gl;gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,this.textureWidth,this.textureHeight,0,gl.RGBA,gl.UNSIGNED_BYTE,this.pixels);}
   }
   update(fields,mode=this.mode) {
     this.fields=fields;this.mode=mode;if(!this.grid)return;
+    // Surface colours are static: rotation never needs another texture upload.
+    if(mode==='surface'&&this.colorMode===mode)return;this.colorMode=mode;
     const color=[0,0,0];
     for(let i=0;i<this.grid.count;i++){
       const j=i*5,kind=this.kinds[i];let value;
@@ -79,37 +81,38 @@ export class GlobeRenderer {
     const box=this.canvas.getBoundingClientRect(),min=Math.min(box.width,box.height),radius=.77*this.zoom;
     let x=(event.clientX-box.left-box.width/2)*2/min/radius,y=-(event.clientY-box.top-box.height/2)*2/min/radius;
     if(x*x+y*y>1)return null;let z=Math.sqrt(1-x*x-y*y),c=Math.cos(this.pitch),s=Math.sin(this.pitch),ny=c*y+s*z,nz=-s*y+c*z;
-    c=Math.cos(this.yaw);s=Math.sin(this.yaw);const nx=c*x+s*nz;z=-s*x+c*nz;
+    c=Math.cos(this.yaw+this.spin);s=Math.sin(this.yaw+this.spin);const nx=c*x+s*nz;z=-s*x+c*nz;
     return {latitude:Math.asin(clamp(ny,-1,1)),longitude:Math.atan2(nx,z)};
   }
   draw(orbital) {
     if(!this.fields)return;
     if(!this.gl){this.drawFallback(orbital);return;}
     const gl=this.gl,u=this.uniforms;gl.useProgram(this.program);gl.uniform2f(u.viewport,this.canvas.width,this.canvas.height);
-    for(const [key,value] of Object.entries({yaw:this.yaw,pitch:this.pitch,zoom:this.zoom,declination:orbital?.declination||0,season:orbital?.longitude||0,mode:this.mode==='surface'?0:1,selectedLat:this.selection?.latitude||0,selectedLon:this.selection?.longitude||0,brushRadius:this.selection?.radius||.018,hasSelection:this.selection?1:0}))gl.uniform1f(u[key],value);
+    for(const [key,value] of Object.entries({yaw:this.yaw+this.spin,pitch:this.pitch,zoom:this.zoom,declination:orbital?.declination||0,season:orbital?.longitude||0,mode:this.mode==='surface'?0:1,selectedLat:this.selection?.latitude||0,selectedLon:this.selection?.longitude||0,brushRadius:this.selection?.radius||.018,hasSelection:this.selection?1:0}))gl.uniform1f(u[key],value);
     gl.uniform1i(u.map,0);gl.drawArrays(gl.TRIANGLES,0,6);
   }
   drawFallback(orbital) {
     // Ray-cast a small reusable image; never draw disconnected cell rectangles.
     const ctx=this.fallback,w=this.canvas.width,h=this.canvas.height,scale=Math.min(1,512/w,384/h),iw=Math.max(1,Math.round(w*scale)),ih=Math.max(1,Math.round(h*scale));
     if(!this.imageCanvas){this.imageCanvas=document.createElement('canvas');this.imageContext=this.imageCanvas.getContext('2d');}
-    const key=[iw,ih,this.yaw,this.pitch,this.zoom].join(',');
+    const key=[iw,ih,this.yaw+this.spin,this.pitch,this.zoom].join(',');
     if(this.fallbackKey!==key){
       this.fallbackKey=key;this.imageCanvas.width=iw;this.imageCanvas.height=ih;this.image=this.imageContext.createImageData(iw,ih);
       this.rays=new Int32Array(iw*ih).fill(-1);this.normals=new Float32Array(iw*ih*3);
-      const minimum=Math.min(iw,ih),radius=.77*this.zoom,cp=Math.cos(this.pitch),sp=Math.sin(this.pitch),cy=Math.cos(this.yaw),sy=Math.sin(this.yaw);
+      const minimum=Math.min(iw,ih),radius=.77*this.zoom,cp=Math.cos(this.pitch),sp=Math.sin(this.pitch),cy=Math.cos(this.yaw+this.spin),sy=Math.sin(this.yaw+this.spin);
       for(let y=0;y<ih;y++)for(let x=0;x<iw;x++){
         const px=(x+.5-iw/2)*2/minimum/radius,py=-(y+.5-ih/2)*2/minimum/radius,i=y*iw+x;
         if(px*px+py*py>1)continue;const pz=Math.sqrt(1-px*px-py*py),ny=cp*py+sp*pz,nz=-sp*py+cp*pz,nx=cy*px+sy*nz,z=-sy*px+cy*nz;
         this.rays[i]=cellAt(this.grid,Math.asin(clamp(ny,-1,1)),Math.atan2(nx,z));this.normals[i*3]=nx;this.normals[i*3+1]=ny;this.normals[i*3+2]=z;
       }
     }
+    const cy=Math.cos(this.yaw+this.spin),sy=Math.sin(this.yaw+this.spin),cp=Math.cos(this.pitch),sp=Math.sin(this.pitch);
     const pixels=this.image.data,declination=orbital?.declination||0,sun=[-.75,Math.sin(declination),.65*Math.cos(declination)],norm=Math.hypot(...sun);for(let j=0;j<3;j++)sun[j]/=norm;
     let selectedNormal=null;if(this.selection){const p=this.selection;selectedNormal=[Math.cos(p.latitude)*Math.sin(p.longitude),Math.sin(p.latitude),Math.cos(p.latitude)*Math.cos(p.longitude)];}
     for(let i=0;i<this.rays.length;i++){
       const index=this.rays[i],j=i*4,y=Math.floor(i/iw);
       if(index<0){pixels[j]=13;pixels[j+1]=31+8*(1-y/ih);pixels[j+2]=37+6*(1-y/ih);pixels[j+3]=255;continue;}
-      const k=i*3,nx=this.normals[k],ny=this.normals[k+1],nz=this.normals[k+2],dot=nx*sun[0]+ny*sun[1]+nz*sun[2],light=this.mode==='surface'?.42+.58*clamp((dot+.16)/.81):.95;
+      const k=i*3,nx=this.normals[k],ny=this.normals[k+1],nz=this.normals[k+2],cameraX=cy*nx-sy*nz,intermediate=sy*nx+cy*nz,cameraY=cp*ny-sp*intermediate,cameraZ=sp*ny+cp*intermediate,dot=cameraX*sun[0]+cameraY*sun[1]+cameraZ*sun[2],light=this.mode==='surface'?.42+.58*clamp((dot+.16)/.81):.95;
       let ring=false;if(selectedNormal){const distance=Math.acos(clamp(nx*selectedNormal[0]+ny*selectedNormal[1]+nz*selectedNormal[2],-1,1));ring=Math.abs(distance-this.selection.radius)<.005;}
       for(let c=0;c<3;c++)pixels[j+c]=ring?[245,215,143][c]:this.cellColors[index*4+c]*light;
       pixels[j+3]=255;

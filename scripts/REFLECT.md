@@ -1,132 +1,188 @@
 # Reflect planet lab
 
-`/reflect/` is a static globe energy balance explorer. The previous terrain
+`/reflect/` is a static browser energy balance explorer. The earlier terrain
 experiment remains at `/reflect/terrain/`; see `REFLECT_TERRAIN.md`.
 
 ## Files
 
-- `_pages/reflect.html`: globe page, controls, scientific explanation and sources.
-- `assets/css/reflect-globe.css`: planet layout overrides; the terrain styles
-  remain in `reflect.css`.
-- `assets/js/reflect/globe-model.mjs`: grid, orbit, scattering, paired temperature
-  integration, surface generation and edits.
-- `globe-worker.mjs`: persistent numerical worker, bounded batches and pooled
-  transferable snapshots.
-- `globe-render.mjs`: native WebGL sphere and reusable Canvas 2D fallback.
-- `globe-app.mjs`: interaction, playback, inspection, diagnostics and CSV.
-- `model.mjs`: unchanged supplied C45 BRDF equations shared with the terrain lab.
+- `_pages/reflect.html`: controls and scientific explanation.
+- `assets/css/reflect-globe.css`: viewport layout, with shared `reflect.css` styles.
+- `assets/js/reflect/globe-model.mjs`: spherical grid, orbit, radiation,
+  approximate regional temperature pattern, reference seasons and edits.
+- `fair-ebm.mjs`: deterministic three-layer FaIR thermal equations in JavaScript.
+- `jin-ocean.mjs`: Jin ocean albedo port from SpeedyWeather `gm/albedo`.
+- `co2-baseline.mjs`: editable dated NOAA concentration snapshot.
+- `globe-worker.mjs`: persistent worker, bounded batches, pooled snapshots.
+- `globe-render.mjs`: native WebGL sphere and capped Canvas fallback.
+- `globe-app.mjs`: playback, inspection, Gaussian brushes and CSV history.
+- `model.mjs`: unchanged supplied C45 equations shared with the terrain lab.
+- `assets/data/reflect/land-mask.bin`: packed Natural Earth coastline raster.
+- `scripts/build_reflect_land_mask.py`: stdlib-only offline mask generator.
 
-## Grid and solar geometry
+## Grid and geography
 
-Default spacing is approximately 100 km, with 200 latitude rows and 50,932
-cells. Reduced longitude counts towards the poles avoid tiny polar cells. Each
-cell's area is computed from spherical latitude boundaries and longitude width;
-its solid angle is stored in double precision. Every global mean is area weighted.
-Continents, vegetation, sea ice and snow are generated illustrative fields,
-not geospatial observations. Earth's radius is 6,371 km.
+Default ~100 km spacing gives 200 latitude rows and 50,932 cells. Reduced
+longitude counts towards the poles avoid tiny polar cells. Areas use exact
+spherical cell boundaries and double precision. Every global mean is area weighted.
+Earth radius is 6,371 km; 200 and 400 km options reduce computation further.
 
-Kepler's equation determines orbital phase and distance. The calendar starts
-near 1 January, with perihelion near 3 January and its solar longitude fixed at
-282.94°. Defaults are eccentricity 0.0167, tilt 23.44° and a 365.2422-day period.
-The orbital clock uses a fixed period when eccentricity changes. Solar irradiance
-is 1361/r² W/m². Latitude-dependent daily insolation treats polar day and night;
-a small quadrature correction gives an exact global incoming mean of S(r)/4.
-Display illumination is decorative; physics uses 24-hour means, not a rotating
-sub-daily atmosphere or a terrain horizon/shadow calculation.
+The land mask rasterises public-domain Natural Earth `ne_110m_land`, repository
+v5.1.2, at 720 × 360 half-degree cell centres. It occupies 32,400 bytes, with
+south-to-north rows and least-significant-bit-first packing. Each model cell
+samples the mask at its centre. Major coastlines and islands are geographic;
+narrow islands, inland waters and fractional coast cells are simplified.
+`land-mask.json` records provenance. To rebuild, download the pinned GeoJSON and
+run `python3 scripts/build_reflect_land_mask.py /path/ne_110m_land.geojson`.
 
-For C45 land, unchanged supplied coefficients are combined into broadband BRDF
-parameters once per cell. Eight-point Gauss–Legendre daylight quadrature computes
-irradiance-weighted black-sky kernels by latitude. Band-combined daily black-sky
-albedo is clamped after averaging; white-sky albedo uses the supplied kernels.
-This daily averaging is an approximation to evaluating and clamping each
-individual sun angle. Physical BRDF inputs, snow and ice remain prescribed;
-simulated temperature does not automatically alter them. User overrides replace
-both direct and diffuse surface reflectivity with one prescribed albedo.
+Vegetation, snow, sea ice and physical C45 inputs are prescribed illustrative
+fields. Polar ocean cells have fixed full ice cover; land temperatures and
+vegetation are not observed maps. Seed varies prescribed input fields, not coastlines.
 
-## Gaussian scattering
+## Orbit, daily radiation and ocean reflection
 
-The global scattering dial multiplies a heterogeneous per-cell field. The local
-scattered fraction is clamped to 0–0.95; the rest remains direct sunlight. The
-scattered irradiance field evolves under the spherical heat equation for
-τ = (σ/R)² / 2, whose local kernel approaches a Gaussian of standard deviation σ.
-Widths range from 80 to 200 km. This is a discrete Gaussian approximation,
-particularly when its width is comparable to cell spacing.
+Kepler's equation sets orbital speed and distance. Perihelion is near 3 January,
+with fixed solar longitude 282.94°, eccentricity 0.0167, tilt 23.44° and period
+365.2422 days. Changing eccentricity retains that period. Insolation is 1361/r²
+W/m². Latitude-dependent daily means include polar day/night; a small spatial
+quadrature correction gives exact global incoming S(r)/4.
 
-A finite-volume neighbor graph connects zonal periodic cells and overlapping
-longitude intervals on adjoining latitude rows. Every edge transfers equal and
-opposite power. Explicit substeps satisfy a positivity bound based on the largest
-diagonal transport rate. This conserves the area integral without a stored large
-Gaussian weight matrix. There is no cloud model, atmospheric absorption,
-backscatter, or thermal diffusion. The global scattering dial redistributes
-incoming solar power and changes direct/diffuse surface reflection.
+The calendar begins in the visitor's current UTC season. Default playback is
+one model year in ten seconds. Display rotation makes one turn per model year,
+with ray-cast lighting kept in viewing coordinates. This is decorative: the
+physics averages 24-hour rotation and is independent of display orientation.
+Reduced-motion preferences disable automatic display rotation; selecting a
+painting/inspection tool also holds the globe still.
 
-## Paired temperature integration and reference
+C45 coefficients, normalisation and noise quadrature are unchanged. Broadband
+BRDF coefficients are cached per land cell. Eight-point Gauss–Legendre daylight
+quadrature averages irradiance-weighted black-sky kernels by latitude; diffuse
+reflection uses white-sky kernels. Clamping the averaged land albedo rather than
+each individual solar angle is a daily averaging approximation.
 
-The unmodified reference planet runs simultaneously at 280 ppm and fixed
-Earth-like orbital/scattering settings. Its annual shortwave field is estimated
-from 48 evenly spaced model-time quadrature samples. A prescribed baseline
-T₀ = 14 − 40(sin²(latitude) − 1/3) °C has a global mean near 14°C. Reference
-seasonal anomalies integrate a linear calibrated radiation law:
+Jin et al. (2011) ocean reflection preserves the coefficients and defaults of
+SpeedyWeather `gm/albedo`, commit `b5eaa01a76d1ce6b083592a1e4c94f419385c77c`:
+refractive index 1.34, foam reflectance 0.55, volume scattering 0.006 and sea-ice
+albedo 0.6. The module is an attributed EUPL-1.2 adaptation; its licence is bundled
+as `assets/data/reflect/SpeedyWeather-EUPL-1.2.txt`.
+
+Direct reflection is Fresnel reflectance minus the Jin roughness regression.
+Diffuse reflection uses the branch's clear/isotropic expression; no cloud option
+is enabled. The global 10 m wind dial defaults to 5 m/s. Unlike SpeedyWeather,
+which expects an external roughness field, this app diagnoses the RMS slope
+using Cox–Munk σ = sqrt(0.003 + 0.00512 U). Whitecaps occupy
+clamp(2.95e-6 U^3.52, 0, 1). Volume scattering and foam are included in both direct
+and diffuse components, then mixed with ice and bounded after the final mixture.
+Eight-point daylight quadrature averages direct ocean albedo before mixing.
+This is a broadband daily approximation, not a spectral ocean or wave model.
+User albedo overrides replace both direct and diffuse reflectivities.
+
+## Gaussian atmospheric scattering
+
+The global dial multiplies a smooth heterogeneous field. Scattered fractions
+are clamped to 0–0.95. Scattered irradiance evolves under the spherical heat
+kernel for τ = (σ/R)² / 2, approaching a Gaussian of standard deviation σ.
+Widths are 80–200 km; the discrete approximation is coarse at large cell spacing.
+
+A finite-volume neighbor graph wraps longitude and joins overlapping intervals
+on adjoining latitude rows. Every edge transfers equal and opposite power;
+explicit substeps satisfy a positivity bound. This conserves the area integral
+without storing a large Gaussian weight matrix. Scattering redistributes sunlight
+and changes direct/diffuse surface reflection. It includes no clouds, atmospheric
+absorption, backscatter to space or thermal diffusion.
+
+## FaIR global thermal response
+
+The JavaScript implementation uses FaIR 2.2.4's deterministic thermal equations,
+specialised to three layers. It does not import the full Python model, carbon
+cycle or stochastic forcing process. With time measured in model years:
 
 ```
-Cₛ dTseason/dt = ASRreference(day) − meanAnnualASRreference − λcentral Tseason
-```
-
-All scenario warming anomalies start at zero and integrate:
-
-```
-Cₛ dΔT/dt = ASRexperiment − ASRreference + 5.35 ln(CO₂ / 280) − λ ΔT
+F = 5.35 ln(CO₂ / 280) + areaMean(ASRexperiment − ASRreference)
+C0 dT0/dt = F − λ T0 − k1(T0 − T1)
+C1 dT1/dt = k1(T0 − T1) − ε k2(T1 − T2)
+C2 dT2/dt = k2(T1 − T2)
+N = F − λ T0 + (1 − ε) k2(T1 − T2)
 λ = 5.35 ln(2) / ECS
 ```
 
-ECS scenarios are 2.5, 3 and 4°C per doubling. Each daily step samples shortwave
-at its midpoint and integrates the linear temperature equation analytically.
-Capacity is 2.1×10⁸ J/m²/K over initial ocean/ice cells and 2×10⁷ over land.
-Capacity remains prescribed when albedo is edited. Changing playback speed
-changes how many daily steps are requested, never the numerical timestep.
+Capacities `[3.62, 9.47, 98.66]` W yr/m²/K and exchanges `[2.39, 0.63]` W/m²/K
+come from the HadGEM2-ES example in FaIR's n-layer documentation. This app changes
+the example feedback to ECS 2.5, 3 and 4°C per doubling, and sets ε=1 for conservative
+exchange. These illustrative configurations are not that model's calibration
+or a posterior FaIR ensemble. The shaded range is a sensitivity scenario envelope,
+not a probabilistic transient interval from IPCC percentiles.
 
-Absolute scenario temperature is T₀ + Tseason + ΔT. These are paired anomaly
-models with a common evolving reference, not three full climate forecasts.
-Their global range is a sensitivity envelope; using assessed ECS percentiles
-does not make it a probabilistic transient temperature interval.
+Daily forcing is sampled at the midpoint. A cached 4×4 augmented matrix
+exponential integrates the three-layer constant-forcing update exactly. The input
+is the change in absorbed sunlight plus CO₂ forcing: evolving imbalance is never
+fed back as an additional forcing. Surface edits and orbit changes retain the
+unchanged reference and temperatures, so their forcing is not recalibrated away.
 
-The main imbalance reports the perturbation from the unchanged reference.
-Total global imbalance includes reference seasonal storage. Integrated stored
-heat is computed exactly as Σ Cₛ ΔTtotal × cell area over each step and tracked
-in ZJ. The trailing mean uses 366 daily integrated net fluxes, rather than sampling
-instantaneous diagnostic flux. Monthly history is bounded to 1,200 entries
-(about 100 years), and CSV exports label lower/upper columns as ECS envelopes.
-The current state is appended to exports when between monthly records.
+## Startup, seasons and regional temperatures
 
-This reference calibration represents prescribed unresolved baseline processes;
-it is not an observational Earth energy budget. No atmospheric/ocean circulation,
-deep ocean, dynamic heat transport, ice feedback or carbon cycle is simulated.
-Future temperature-goal gameplay can use the existing anomaly and local albedo
-brushes, without confusing reference changes with real-world policy predictions.
+Automatic startup uses the dated NOAA global trend snapshot in
+`co2-baseline.mjs`: 428.00 ppm for 9 October 2026, checked 10 October 2026.
+The displayed date and “Recent” button refer to this bundled value; there is no
+live request. Update that file and the HTML fallback when refreshing the value.
 
-## Performance
+All three thermal layers start at equilibrium with the selected CO₂. This is an
+idealised equilibrium-at-present-CO₂ experiment, not historical climate or observed
+present-day warming. The unchanged 280 ppm reference uses the original surfaces,
+wind, orbit and scattering. Its prescribed baseline is
+Tbase = 14 − 40(sin²(latitude) − 1/3) °C, averaging near 14°C.
 
-At 100 km spacing, retained numerical typed arrays total about 10.2 MiB in the
-worker. This excludes transient construction arrays, browser/graphics overhead
-and the main-thread snapshot/render buffers. Snapshots contain five Float32
-fields per cell (about 1 MiB) and their buffers are returned to a small pool.
-Worker batches are capped at eight requested days from the UI, with one advance
-in flight. No per-cell timestep history is stored. The worker persists for the
-running experiment and is terminated when regenerated or the page is left.
+Reference annual absorbed sunlight is estimated with 48 samples. The periodic
+seasonal state is solved analytically at startup, then integrated daily:
 
-The globe uses one small native shader, a 720×360 texture and a reusable texture
-lookup map. Canvas pixel count is capped at 1.2 million and device pixel ratio at
-1.5. A ray-cast Canvas fallback has a capped 512×384 image and caches projection
-geometry; it remains usable without WebGL. Updates happen when state or view
-changes, with no idle animation loop. Hidden pages pause climate playback.
-There are no runtime libraries, downloaded textures, APIs or uploads.
+```
+Cs dTseason/dt = ASRreference − annualMeanASRreference − λcentral Tseason
+```
+
+A separate local single-layer anomaly supplies an approximate regional pattern,
+using prescribed capacities 2.1e8 J/m²/K over ocean/ice and 2e7 over land. Its
+area mean is removed and replaced by FaIR's central global surface anomaly.
+The regional map is not a spatial FaIR model or resolved circulation.
+Absolute temperature is the reference baseline plus seasonal temperature and
+this adjusted anomaly. Scenario global temperatures share the same reference.
+
+Main imbalance reports the change from the reference; total imbalance includes
+reference seasonal storage. Heat change is the exact change in reference seasonal
+heat plus the central FaIR layers' heat content, converted to ZJ. The trailing
+366-day mean uses integrated net fluxes. Monthly scalar history is capped at
+1,200 records; CSV exports use ECS-envelope labels and append the current state.
+No dynamic heat transport, ice feedback, interactive clouds or carbon cycle is
+included. These assumptions are also visible in the app's “How it works” dialog.
+
+## Lightweight implementation
+
+Numerical state occupies roughly 10 MiB at 100 km, excluding transient graph
+construction, browser overhead and render buffers. FaIR adds only nine thermal
+states and three small cached matrices. No per-cell timestep history is retained.
+Five Float32 fields form each ~1 MiB transferable snapshot, returned to a small
+pool. At most one advance is in flight, with batches capped at eight requested
+days. Worker snapshots and DOM updates target at most 12 per second; display
+rotation is capped near 30 fps and needs no texture upload on the surface view.
+Slower devices can run below the selected playback speed without skipping daily
+physics. Hidden pages pause; restart/page exit terminates the worker.
+
+Native WebGL uses one shader and a 720×360 texture. Pixel count is capped at
+1.2 million and DPR at 1.5. Canvas fallback ray-casts a reusable 512×384 image.
+Paused views have no idle animation loop. No runtime libraries, remote textures,
+API calls or uploads are needed; the coastline mask is a tiny same-origin asset.
 
 ## Sources
 
-- [Climlab insolation documentation](https://climlab.readthedocs.io/en/latest/api/climlab.radiation.insolation.html)
-- [Climlab linear longwave formulation](https://climlab.readthedocs.io/en/stable/api/climlab.radiation.AplusBT.html)
-- [IPCC AR6 assessed ECS](https://www.ipcc.ch/report/ar6/wg1/chapter/summary-for-policymakers/)
-- [IPCC logarithmic CO₂ forcing expression](https://archive.ipcc.ch/ipccreports/tar/wg1/222.htm)
+- [FaIR 2.2.4 thermal source](https://github.com/OMS-NetZero/FAIR/blob/v2.2.4/src/fair/energy_balance_model.py)
+- [FaIR n-layer example / parameter provenance](https://docs.fairmodel.net/en/v2.2.4/examples/n-layer-ebm.html)
+- [Jin et al. (2011)](https://doi.org/10.1364/OE.19.026429)
+- [Pinned SpeedyWeather source](https://github.com/SpeedyWeather/SpeedyWeather.jl/blob/b5eaa01a76d1ce6b083592a1e4c94f419385c77c/SpeedyWeather/src/parameterizations/albedo.jl)
+- [Cox–Munk roughness and ocean formulation](https://gmd.copernicus.org/articles/11/321/2018/)
+- [Natural Earth source](https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_110m_land.geojson)
+- [Natural Earth public-domain terms](https://www.naturalearthdata.com/about/terms-of-use/)
+- [NOAA global trend estimate](https://gml.noaa.gov/ccgg/trends/gl_trend.html)
+- [Seasonal insolation](https://climlab.readthedocs.io/en/latest/api/climlab.radiation.insolation.html)
+- [IPCC AR6 ECS assessment](https://www.ipcc.ch/report/ar6/wg1/chapter/summary-for-policymakers/)
+- [Logarithmic CO₂ forcing](https://archive.ipcc.ch/ipccreports/tar/wg1/222.htm)
 
 ## Local preview
 

@@ -1,16 +1,20 @@
 import { sphericalGrid, cellAt, clamp, YEAR, RADIUS, TAU } from './globe-model.mjs';
 import { GlobeRenderer } from './globe-render.mjs';
+import { PRESENT_CO2 } from './co2-baseline.mjs';
+const today=new Date(),startDay=(Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate())-Date.UTC(today.getUTCFullYear(),0,1))/86400000;
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+let displayDay=0,lastDraw=0;
 const $=id=>document.getElementById(id),canvas=$('planet'),renderer=new GlobeRenderer(canvas),names=['Ocean','Sea ice','Forest','Grass','Bare soil','Snow'];
 let worker=null,grid=null,fields=null,metrics=null,history=[],selected=-1,ready=false,running=false,busy=false,queuedDays=0,brush='rotate',view='surface',animation=0,lastTick=0,accumulator=0,configurationTimer=0,paintTime=0,drag=null,lastFrame=0;
 const signed=(x,digits=2)=>(x>=0?'+':'−')+Math.abs(x).toFixed(digits);
 function status(text){$('status').textContent=text;}
-function config(){return{spacing:Number($('resolution').value),seed:Number($('seed').value)||0,co2:Number($('co2').value),scatter:Number($('scatter').value)/100,width:Number($('width').value),eccentricity:Number($('eccentricity').value),tilt:Number($('tilt').value)};}
+function config(){return{spacing:Number($('resolution').value),seed:Number($('seed').value)||0,co2:Number($('co2').value),wind:Number($('wind').value),startDay,scatter:Number($('scatter').value)/100,width:Number($('width').value),eccentricity:Number($('eccentricity').value),tilt:Number($('tilt').value)};}
 function setOutputs(){
- $('co2-value').textContent=`${$('co2').value} ppm`;$('scatter-value').textContent=`${$('scatter').value}%`;$('eccentricity-value').textContent=Number($('eccentricity').value).toFixed(4);$('tilt-value').textContent=Number($('tilt').value).toFixed(2)+'°';$('radius-value').textContent=$('radius').value+' km';
+ $('wind-value').textContent=`${$('wind').value} m/s`;$('co2-value').textContent=`${$('co2').value} ppm`;$('scatter-value').textContent=`${$('scatter').value}%`;$('eccentricity-value').textContent=Number($('eccentricity').value).toFixed(4);$('tilt-value').textContent=Number($('tilt').value).toFixed(2)+'°';$('radius-value').textContent=$('radius').value+' km';
 }
 function initialize(restore=false){
- pause();if(worker)worker.terminate();fields=null;metrics=null;history=[];selected=-1;ready=false;busy=false;queuedDays=0;accumulator=0;
- if(restore){$('co2').value=280;$('scatter').value=30;$('width').value=120;$('eccentricity').value=.0167;$('tilt').value=23.44;setOutputs();}
+ pause();if(worker)worker.terminate();fields=null;metrics=null;history=[];selected=-1;ready=false;busy=false;queuedDays=0;accumulator=0;displayDay=0;renderer.spin=0;
+ if(restore){$('co2').value=PRESENT_CO2.ppm;$('wind').value=5;$('scatter').value=30;$('width').value=120;$('eccentricity').value=.0167;$('tilt').value=23.44;setOutputs();}
  $('run').disabled=true;$('run').textContent='Building…';$('step').disabled=true;$('export').disabled=true;$('stage-label').textContent='BUILDING YOUR PLANET';status('Calibrating the unchanged reference orbit…');
  worker=new Worker(new URL('./globe-worker.mjs',import.meta.url),{type:'module'});
  worker.onmessage=({data})=>{
@@ -24,7 +28,7 @@ function initialize(restore=false){
   }
   if(data.type==='ready'){
    ready=true;$('run').disabled=false;$('run').textContent='▶ Run climate';$('step').disabled=false;$('export').disabled=false;$('stage-label').textContent='YOUR REFERENCE PLANET';
-   status('Ready. Raise CO₂, change the orbit, or paint the planet. Warming is measured against the unchanged reference.');
+   start();
   }
   if(data.type==='advanced'){
    busy=false;
@@ -35,13 +39,17 @@ function initialize(restore=false){
  worker.onerror=()=>{pause();busy=false;ready=false;status('The climate worker could not start. Reload or reset to retry.');};
  worker.postMessage({type:'initialize',config:config()});
 }
-function configure(){setOutputs();clearTimeout(configurationTimer);configurationTimer=setTimeout(()=>{if(ready){worker.postMessage({type:'configure',config:config()});status('Updated the forcing. Run the climate to integrate the temperature response.');}},90);}
-function start(){if(!ready||running)return;running=true;lastTick=performance.now();accumulator=0;$('run').textContent='Ⅱ Pause';$('stage-label').textContent='FOLLOWING THE CLIMATE';$('live-dot').classList.add('running');status('Integrating daily energy and temperature. The sensitivity envelope evolves with the experiment.');animation=requestAnimationFrame(tick);}
-function pause(){running=false;cancelAnimationFrame(animation);$('live-dot').classList.remove('running');if(ready)$('run').textContent='▶ Run climate';}
+function configure(){setOutputs();clearTimeout(configurationTimer);configurationTimer=setTimeout(()=>{if(ready){worker.postMessage({type:'configure',config:config()});status(running?'Forcing updated. Temperature continues integrating from the current state.':'Forcing updated. Resume to integrate temperature.');}},90);}
+function start(){if(!ready||running)return;running=true;lastTick=performance.now();accumulator=0;$('run').textContent='Ⅱ Pause';$('stage-label').textContent='FOLLOWING THE CLIMATE';$('live-dot').classList.add('running');status('FaIR three-layer response · equilibrium start at dated recent CO₂ · daily physics · one display turn per model year.');animation=requestAnimationFrame(tick);}
+function pause(){running=false;queuedDays=0;cancelAnimationFrame(animation);$('live-dot').classList.remove('running');if(ready)$('run').textContent='▶ Run climate';}
 function advance(days){if(!ready||busy)return;busy=true;worker.postMessage({type:'advance',days});}
 function tick(now){
  if(!running)return;accumulator=Math.min(16,accumulator+(now-lastTick)/1000*Number($('speed').value));lastTick=now;
- if(!busy&&accumulator>=1){const days=Math.min(8,Math.floor(accumulator));accumulator-=days;advance(days);}
+ if(!busy&&accumulator>=Math.max(1,Number($('speed').value)/12)){const days=Math.min(8,Math.floor(accumulator));accumulator-=days;advance(days);}
+ if(metrics&&!reducedMotion.matches&&now-lastDraw>33){
+  const previous=displayDay;displayDay+=(metrics.day-displayDay)*Math.min(1,(now-lastDraw)/90);
+  if(!drag&&brush==='rotate'){renderer.spin-=TAU*(displayDay-previous)/YEAR;renderer.draw(metrics.orbital);}lastDraw=now;
+ }
  animation=requestAnimationFrame(tick);
 }
 function updateUI(){
@@ -89,12 +97,13 @@ function draw(){if(metrics)renderer.draw(metrics.orbital);}
 $('run').addEventListener('click',()=>{if(running){pause();status('Paused. Change a forcing or inspect a tile.');}else start();});
 $('step').addEventListener('click',()=>{if(!ready)return;pause();queuedDays+=30;const days=Math.min(8,queuedDays);if(!busy){queuedDays-=days;advance(days);}});
 $('generate').addEventListener('click',()=>initialize());$('reset').addEventListener('click',()=>initialize(true));
-['co2','scatter','eccentricity','tilt'].forEach(id=>$(id).addEventListener('input',configure));$('width').addEventListener('change',configure);
+['co2','wind','scatter','eccentricity','tilt'].forEach(id=>$(id).addEventListener('input',configure));$('width').addEventListener('change',configure);
 $('radius').addEventListener('input',()=>{setOutputs();if(renderer.selection)renderer.selection.radius=Number($('radius').value)*1000/RADIUS;draw();});
 $('earth-orbit').addEventListener('click',()=>{$('eccentricity').value=.0167;$('tilt').value=23.44;configure();});
+$('present-co2').addEventListener('click',()=>{$('co2').value=PRESENT_CO2.ppm;configure();});
 $('co2').addEventListener('change',configure);document.querySelectorAll('[data-co2]').forEach(button=>button.addEventListener('click',()=>{$('co2').value=button.dataset.co2;configure();}));
 $('brushes').addEventListener('click',event=>{const button=event.target.closest('[data-brush]');if(!button)return;brush=button.dataset.brush;document.querySelectorAll('[data-brush]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));canvas.style.cursor=brush==='rotate'?'grab':'crosshair';});
-for(const button of document.querySelectorAll('[data-view]'))button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));$('map-legend').textContent={surface:'Illustrative continents · drag to turn',temperature:'Temperature · blue −35 / cream 2.5 / red 40°C',warming:'Warming vs reference · blue cooling / red warming (±5°C)',albedo:'Albedo · dark 0 / bright 1',scattering:'Diffuse fraction · dark 0 / bright 1',imbalance:'Net flux · blue cooling / red warming (±100 W/m²)'}[view];if(fields)renderer.update(fields,view);draw();});
+for(const button of document.querySelectorAll('[data-view]'))button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));$('map-legend').textContent={surface:'Earth coastlines · Jin ocean / C45 land',temperature:'Temperature · blue −35 / cream 2.5 / red 40°C',warming:'Warming vs reference · blue cooling / red warming (±5°C)',albedo:'Albedo · dark 0 / bright 1',scattering:'Diffuse fraction · dark 0 / bright 1',imbalance:'Net flux · blue cooling / red warming (±100 W/m²)'}[view];if(fields)renderer.update(fields,view);draw();});
 canvas.addEventListener('pointerdown',event=>{if(event.button!==0||!ready)return;canvas.setPointerCapture(event.pointerId);drag={x:event.clientX,y:event.clientY,yaw:renderer.yaw,pitch:renderer.pitch};const location=renderer.coordinates(event);if(brush==='inspect')inspect(location);else if(brush!=='rotate')paint(location);});
 canvas.addEventListener('pointermove',event=>{
  if(!ready)return;const now=performance.now();if(!drag){if(brush!=='rotate'&&now-lastFrame>40){const p=renderer.coordinates(event);renderer.selection=p?{...p,radius:Number($('radius').value)*1000/RADIUS}:null;draw();lastFrame=now;}return;}
@@ -103,8 +112,8 @@ canvas.addEventListener('pointermove',event=>{
 });
 function endDrag(){drag=null;}canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);canvas.addEventListener('pointerleave',()=>{if(!drag){renderer.selection=null;draw();}});
 canvas.addEventListener('wheel',event=>{event.preventDefault();renderer.zoom=clamp(renderer.zoom*Math.exp(-event.deltaY*.001),.65,2.5);draw();},{passive:false});
-canvas.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','Enter'].includes(event.key))return;event.preventDefault();if(event.key==='ArrowLeft')renderer.yaw-=.08;if(event.key==='ArrowRight')renderer.yaw+=.08;if(event.key==='ArrowUp')renderer.pitch=clamp(renderer.pitch+.08,-1.45,1.45);if(event.key==='ArrowDown')renderer.pitch=clamp(renderer.pitch-.08,-1.45,1.45);if(event.key==='+'||event.key==='=')renderer.zoom=clamp(renderer.zoom*1.1,.65,2.5);if(event.key==='-')renderer.zoom=clamp(renderer.zoom/1.1,.65,2.5);if(event.key==='Enter')inspect({latitude:renderer.pitch,longitude:renderer.yaw});draw();});
-$('zoom-in').addEventListener('click',()=>{renderer.zoom=clamp(renderer.zoom*1.15,.65,2.5);draw();});$('zoom-out').addEventListener('click',()=>{renderer.zoom=clamp(renderer.zoom/1.15,.65,2.5);draw();});$('home-view').addEventListener('click',()=>{renderer.yaw=-.45;renderer.pitch=.18;renderer.zoom=1;draw();});
+canvas.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','Enter'].includes(event.key))return;event.preventDefault();if(event.key==='ArrowLeft')renderer.yaw-=.08;if(event.key==='ArrowRight')renderer.yaw+=.08;if(event.key==='ArrowUp')renderer.pitch=clamp(renderer.pitch+.08,-1.45,1.45);if(event.key==='ArrowDown')renderer.pitch=clamp(renderer.pitch-.08,-1.45,1.45);if(event.key==='+'||event.key==='=')renderer.zoom=clamp(renderer.zoom*1.1,.65,2.5);if(event.key==='-')renderer.zoom=clamp(renderer.zoom/1.1,.65,2.5);if(event.key==='Enter')inspect({latitude:renderer.pitch,longitude:renderer.yaw+renderer.spin});draw();});
+$('zoom-in').addEventListener('click',()=>{renderer.zoom=clamp(renderer.zoom*1.15,.65,2.5);draw();});$('zoom-out').addEventListener('click',()=>{renderer.zoom=clamp(renderer.zoom/1.15,.65,2.5);draw();});$('home-view').addEventListener('click',()=>{renderer.yaw=-.45-renderer.spin;renderer.pitch=.18;renderer.zoom=1;draw();});
 $('inspector-link').addEventListener('click',()=>{if(selected<0)inspect({latitude:0,longitude:0});else $('inspector').showModal();});$('science-link').addEventListener('click',()=>$('science').showModal());document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).close()));
 $('inspect-coordinate').addEventListener('click',()=>{if(!$('inspect-lat').checkValidity()||!$('inspect-lon').checkValidity())return;inspect({latitude:Number($('inspect-lat').value)*Math.PI/180,longitude:Number($('inspect-lon').value)*Math.PI/180},false);});
 $('tile-albedo').addEventListener('change',()=>{if(selected<0)return;const input=$('tile-albedo');if(input.value===''){worker.postMessage({type:'edit',edit:{mode:'albedo',index:selected,value:NaN}});}else if(input.checkValidity())worker.postMessage({type:'edit',edit:{mode:'albedo',index:selected,value:input.valueAsNumber}});});
@@ -118,4 +127,6 @@ $('export').addEventListener('click',()=>{
 new ResizeObserver(()=>{renderer.resize();draw();}).observe(canvas);
 canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();pause();ready=false;status('Graphics context lost. Reload this page to restore the globe.');});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){pause();status('Paused while this page is hidden. Resume when you are ready.');}});
+const co2Date=new Date(PRESENT_CO2.date+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+$('co2').value=PRESENT_CO2.ppm;$('co2-source').textContent=`NOAA estimate · ${co2Date}`;$('co2-source').href=PRESENT_CO2.url;
 window.addEventListener('pagehide',()=>{pause();worker?.terminate();});setOutputs();renderer.resize();initialize();

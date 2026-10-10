@@ -11,7 +11,11 @@ self.onmessage=async({data:message})=>{
     if(message.type==='recycle'){if(pool.length<2)pool.push(message.buffer);return;}
     if(message.type==='initialize'){
       const id=++generation;planet=null;pool=[];selected=-1;
-      const next=new Planet(message.config);
+      const response=await fetch(new URL('../../data/reflect/land-mask.bin',import.meta.url));
+      if(!response.ok)throw new Error('Could not load the Earth land–ocean mask');
+      const landMask=new Uint8Array(await response.arrayBuffer());
+      if(id!==generation)return;
+      const next=new Planet({...message.config,landMask});
       await next.initialize(async progress=>{postMessage({type:'progress',progress});await pause();});
       if(id!==generation)return;planet=next;
       const kinds=planet.kinds.slice();postMessage({type:'grid',spacing:planet.grid.spacing,count:planet.grid.count,kinds},[kinds.buffer]);snapshot('ready');return;

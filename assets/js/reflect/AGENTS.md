@@ -47,14 +47,25 @@ including across longitude seams and polar row changes. All means use true
 spherical cell areas. Changes to orbit, CO₂ or albedo must retain the unchanged
 reference; never recalibrate an experiment's forcing away.
 
-Integrate three paired temperature anomalies using ECS 2.5/3/4°C per doubling
-and prescribed heat capacities. Label their envelope as sensitivity scenarios,
+Integrate three global deterministic FaIR thermal responses using ECS 2.5/3/4°C
+per doubling. Feed CO₂ forcing plus area-weighted absorbed-shortwave change
+into the three-layer equations, never the evolving imbalance itself. Use the
+cached daily matrix exponential; keep the approximate regional pattern separate
+and adjust its mean to the global FaIR result. Label the envelope as sensitivity scenarios,
 not a transient probabilistic confidence interval. Show perturbation imbalance
 and total seasonal imbalance distinctly. Local albedo edits must preserve the
 experiment's temperatures and history. The baseline and physical C45 inputs are
-prescribed; do not imply observational geography or automatic climate feedback.
+prescribed; the Natural Earth mask supplies real coastlines but vegetation and
+ice remain illustrative. Preserve the Jin ocean coefficients from the pinned
+SpeedyWeather gm/albedo source, its attribution and EUPL licence. Diagnose the
+roughness input explicitly from Cox–Munk wind, and clamp the final mixture.
 
 Native WebGL draws the globe, with a cached low-resolution ray-cast Canvas
 fallback. Keep graphics and physics independent, cap pixel buffers, and draw
-only when simulation or view state changes. The future albedo game should use
+at most 30 times per second during annual display rotation; stop on pause, hidden
+pages, editing or reduced-motion preference. Static surface textures need one
+upload; only quantitative map modes change each snapshot. Autostart uses a dated
+NOAA snapshot from co2-baseline.mjs and today's season. Never present that cached
+value as a live feed, or the equilibrium initialisation as historical climate.
+The future albedo game should use
 this same model and keep its educational assumptions visible.

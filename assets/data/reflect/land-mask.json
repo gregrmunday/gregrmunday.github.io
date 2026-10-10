@@ -1,0 +1,13 @@
+{
+  "width": 720,
+  "height": 360,
+  "origin": [
+    -180,
+    -90
+  ],
+  "rows": "south-to-north",
+  "bit_order": "least-significant-bit-first",
+  "source": "Natural Earth ne_110m_land, v5.1.2 repository",
+  "licence": "Public domain",
+  "url": "https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_110m_land.geojson"
+}
