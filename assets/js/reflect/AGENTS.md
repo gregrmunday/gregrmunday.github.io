@@ -69,3 +69,12 @@ NOAA snapshot from co2-baseline.mjs and today's season. Never present that cache
 value as a live feed, or the equilibrium initialisation as historical climate.
 The future albedo game should use
 this same model and keep its educational assumptions visible.
+
+## Boundary-data checkpoint
+
+See `scripts/REFLECT_NEXT.md` before continuing. SpeedyWeatherAssets boundary
+binaries and conversion metadata are prepared at a pinned source commit, but
+runtime integration is pending. Keep learned C45 for land; the prescribed albedo
+asset must not replace it. Respect snow mass-to-water-depth conversion, monthly
+missing masks, coordinate ordering and documented temperature proxies. The user
+stopped offline simulations; do not resume them without a new request.
