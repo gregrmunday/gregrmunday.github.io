@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cache conference entries from the public Google Scholar profile."""
+"""Cache conference entries and citation counts from Google Scholar."""
 
 import argparse
 import json
@@ -136,6 +136,38 @@ def enrich_from_detail(work, text):
                 break
 
 
+def parse_citations(text, profile_url):
+    """Read counts for every profile entry without importing extra publications."""
+    rows = Document(text).root.find_all("tr", class_name="gsc_a_tr")
+    if not rows:
+        raise ValueError("Scholar did not return a publication table; keeping its previous cache")
+    citations = []
+    for row in rows:
+        titles = row.find_all("a", class_name="gsc_a_at")
+        cells = row.find_all("td", class_name="gsc_a_c")
+        years = row.find_all("td", class_name="gsc_a_y")
+        metadata = row.find_all("div", class_name="gs_gray")
+        if not titles or not cells or not years or len(metadata) < 2:
+            raise ValueError("Scholar's citation markup changed; keeping its previous cache")
+        links = cells[0].find_all("a", class_name="gsc_a_ac")
+        if not links:
+            raise ValueError("Scholar's citation count is unavailable; keeping its previous cache")
+        count = links[0].text.replace(",", "")
+        if count and not re.fullmatch(r"\d+", count):
+            raise ValueError("Invalid Scholar citation count; keeping its previous cache")
+        source = urljoin(profile_url, titles[0].attributes["href"])
+        year = re.search(r"\b\d{4}\b", years[0].text)
+        href = links[0].attributes.get("href", "")
+        citations.append({
+            "scholar_id": parse_qs(urlparse(source).query).get("citation_for_view", [""])[0],
+            "title": titles[0].text, "year": year[0] if year else "",
+            "venue": metadata[1].text, "doi": doi_from_text(metadata[1].text),
+            "citation_count": int(count or 0),
+            "citation_url": urljoin(profile_url, href) if href else source,
+        })
+    return citations
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, help="Import a saved public profile HTML file")
@@ -151,13 +183,16 @@ def main():
     fetch_url = "https://scholar.google.com/citations?" + urlencode({"user": user, "hl": "en", "pagesize": 100})
     text = read_saved(args.source) if args.source else read_html(fetch_url)
     works, has_more = parse_profile(text, profile_url)
+    citations = parse_citations(text, profile_url)
     offset = 100
     while has_more:
         if args.source:
             raise ValueError("Saved profile is incomplete; export all entries or fetch the profile live")
         time.sleep(1)
         page = fetch_url + "&cstart=" + str(offset)
-        more, has_more = parse_profile(read_html(page), profile_url)
+        page_text = read_html(page)
+        more, has_more = parse_profile(page_text, profile_url)
+        citations.extend(parse_citations(page_text, profile_url))
         works.extend(more)
         offset += 100
     output = ROOT / "_data/scholar_publications.json"
@@ -188,8 +223,8 @@ def main():
                 # The complete profile is still usable without a detail-page DOI.
                 print(f"Detail metadata unavailable for {work['title']}: {error}")
     works.sort(key=lambda work: (work["sort_date"], work["title"], work["scholar_id"]), reverse=True)
-    write_cache(output, {"profile_url": profile_url, "works": works})
-    print(f"Cached {len(works)} Google Scholar conference entries")
+    write_cache(output, {"profile_url": profile_url, "works": works, "citations": citations})
+    print(f"Cached {len(works)} Google Scholar conference entries and {len(citations)} citation counts")
 
 
 if __name__ == "__main__":

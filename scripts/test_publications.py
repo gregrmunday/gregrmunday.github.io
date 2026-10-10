@@ -4,7 +4,7 @@ import unittest
 
 from merge_publications import merge
 from publication_metadata import normalize_doi, same_work
-from sync_scholar import parse_profile
+from sync_scholar import parse_citations, parse_profile
 
 
 def conference(**changes):
@@ -61,6 +61,38 @@ class PublicationTests(unittest.TestCase):
     def test_blocked_scholar_response_is_rejected(self):
         with self.assertRaises(ValueError):
             parse_profile("<html><body>Too many requests</body></html>", "https://scholar.google.com/citations?user=test")
+
+    def test_citations_include_papers_and_explicit_zero(self):
+        html = '''<table><tr class="gsc_a_tr">
+          <td><a class="gsc_a_at" href="/citations?citation_for_view=test:paper">A paper</a>
+          <div class="gs_gray">A Author</div><div class="gs_gray">A journal</div></td>
+          <td class="gsc_a_c"><a class="gsc_a_ac" href="/scholar?cites=123">1,234</a></td>
+          <td class="gsc_a_y">2026</td></tr>
+          <tr class="gsc_a_tr"><td><a class="gsc_a_at" href="/citations?citation_for_view=test:new">New paper</a>
+          <div class="gs_gray">A Author</div><div class="gs_gray">A journal</div></td>
+          <td class="gsc_a_c"><a class="gsc_a_ac" href=""></a></td>
+          <td class="gsc_a_y">2026</td></tr></table>'''
+        citations = parse_citations(html, "https://scholar.google.com/citations?user=test")
+        self.assertEqual([item["citation_count"] for item in citations], [1234, 0])
+        self.assertEqual(citations[0]["citation_url"], "https://scholar.google.com/scholar?cites=123")
+        self.assertIn("citation_for_view=test:new", citations[1]["citation_url"])
+        with self.assertRaises(ValueError):
+            parse_citations(html.replace("1,234", "unavailable"), "https://scholar.google.com/citations?user=test")
+
+    def test_citation_merge_preserves_versions_and_unknown_counts(self):
+        paper = conference(category="journal_articles", venue="Journal", doi="10.1234/paper")
+        preprint = conference(category="preprints", venue="", year="2025", doi="10.1234/preprint")
+        unknown = conference(title="Unlisted work")
+        orcid = {"profile_url": "https://orcid.org/example", "categories": [], "works": [paper, preprint, unknown]}
+        scholar = {"citations": [{"title": paper["title"], "year": "2026", "citation_count": 0, "citation_url": "https://scholar.google.com/example"}]}
+        works = merge(orcid, scholar)["works"]
+        self.assertEqual(next(w for w in works if w["category"] == "journal_articles")["citation_count"], 0)
+        self.assertTrue(all("citation_count" not in w for w in works if w["category"] != "journal_articles"))
+        preprint["year"] = "2026"
+        self.assertTrue(all("citation_count" not in w for w in merge(orcid, scholar)["works"]))
+        preprint["year"] = "2025"
+        scholar["citations"].append(dict(scholar["citations"][0], citation_count=3))
+        self.assertTrue(all("citation_count" not in w for w in merge(orcid, scholar)["works"]))
 
 
 if __name__ == "__main__":

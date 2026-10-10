@@ -4,7 +4,7 @@
 import copy
 import json
 
-from publication_metadata import ROOT, conference_identity, display_abstract_id, normalize_doi, same_work, write_cache
+from publication_metadata import ROOT, conference_identity, display_abstract_id, normalize_doi, normalized_title, same_work, write_cache
 
 
 def merge(orcid, scholar, additional=None):
@@ -41,11 +41,34 @@ def merge(orcid, scholar, additional=None):
                 for key in ("doi", "abstract_id", "authors"):
                     if not duplicate.get(key) and work.get(key):
                         duplicate[key] = work[key]
+                if work.get("scholar_id"):
+                    duplicate["scholar_id"] = work["scholar_id"]
                 if not duplicate.get("url") and work.get("url"):
                     duplicate["url"] = work["url"]
             else:
                 work["sources"] = [source]
                 works.append(work)
+    for work in works:
+        candidates = []
+        title_year_matches = [item for item in works if item["category"] != "conferences"
+                              and str(item["year"]) == str(work["year"])
+                              and normalized_title(item["title"]) == normalized_title(work["title"])]
+        for citation in scholar.get("citations", []):
+            if work.get("scholar_id") and work["scholar_id"] == citation.get("scholar_id"):
+                candidates = [citation]
+                break
+            if work.get("doi") and citation.get("doi"):
+                if normalize_doi(work["doi"]) == normalize_doi(citation["doi"]):
+                    candidates = [citation]
+                    break
+                continue
+            # Match papers by exact normalised title and year; different versions
+            # and ambiguous Scholar records must not share a fabricated count.
+            if work["category"] != "conferences" and len(title_year_matches) == 1 and str(work["year"]) == citation["year"] and normalized_title(work["title"]) == normalized_title(citation["title"]):
+                candidates.append(citation)
+        if len(candidates) == 1:
+            for key in ("citation_count", "citation_url"):
+                work[key] = candidates[0][key]
     works.sort(key=lambda work: (work["sort_date"], work["title"]), reverse=True)
     return {
         "profile_url": orcid["profile_url"], "scholar_url": scholar.get("profile_url", ""),

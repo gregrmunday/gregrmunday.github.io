@@ -312,12 +312,12 @@
       }
     }
     &__entry {
-      grid-template-columns: 34px minmax(0, 1fr);
+      grid-template-columns: 34px minmax(0, 1fr) 2.75rem;
       padding: 6px 0;
       margin: 0;
     }
     &__entry--journal {
-      grid-template-columns: 135px minmax(0, 1fr);
+      grid-template-columns: 135px minmax(0, 1fr) 2.75rem;
     }
     &__year, &__venue, &__identifier {
       font-size: 11px;
@@ -478,7 +478,7 @@
 }
 @media (max-width: 480px) {
   .home-section .publication-list__entry--journal {
-    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-columns: 90px minmax(0, 1fr) 2.5rem;
   }
   .home-grid {
     padding: 16px;

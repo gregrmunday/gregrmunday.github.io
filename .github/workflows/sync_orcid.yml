@@ -38,7 +38,7 @@ jobs:
       - name: Fetch public ORCID works
         continue-on-error: true
         run: python scripts/sync_orcid.py
-      - name: Fetch Google Scholar conferences
+      - name: Fetch Google Scholar conferences and citation counts
         continue-on-error: true
         run: python scripts/sync_scholar.py
       # Failed source requests preserve their committed cache. A merge failure

@@ -9,6 +9,15 @@ The profile URLs come from `author.orcid` and `author.googlescholar` in
 `_config.yml`. ORCID metadata takes precedence for matching entries; each merged
 work also records its sources.
 
+The Scholar cache also stores citation counts for every profile entry. The merge
+attaches them to existing publications using Scholar IDs or DOIs, then exact
+normalised titles and publication years for papers. Ambiguous matches are left
+unavailable. Scholar records do not create additional journal articles or preprints.
+Counts appear in a right-hand column beside a quotation-mark icon, with a tooltip
+and accessible label. Positive counts link to the citing papers. The column stays
+blank when the count is zero or unavailable. Counts refresh daily with
+the existing workflow, and failed fetches preserve the last successful cache.
+
 ## Refreshing locally
 
 ```sh
