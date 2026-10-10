@@ -37,7 +37,7 @@
         {% if work.citation_count > 0 %}
         {% capture citation_label %}{{ work.citation_count }} {% if work.citation_count == 1 %}citation{% else %}citations{% endif %} on Google Scholar{% endcapture %}
         <a class="publication-list__citations" href="{{ work.citation_url | escape }}" aria-label="{{ citation_label | strip | escape }} for {{ work.title | escape }}" title="{{ citation_label | strip | escape }}">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path fill="currentColor" d="M4 5h7v7c0 4-2 6-6 7v-3c2-.7 3-1.7 3-4H4V5zm10 0h7v7c0 4-2 6-6 7v-3c2-.7 3-1.7 3-4h-4V5z"/></svg>
+          <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true" focusable="false"><path fill="currentColor" d="M4 5h7v7c0 4-2 6-6 7v-3c2-.7 3-1.7 3-4H4V5zm10 0h7v7c0 4-2 6-6 7v-3c2-.7 3-1.7 3-4h-4V5z"/></svg>
           <span>{{ work.citation_count }}</span>
         </a>
         {% endif %}
