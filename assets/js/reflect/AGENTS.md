@@ -123,7 +123,12 @@ The project's purpose is to demonstrate learned land-albedo influence on global
 climate and sensitivity to each physical input. Prioritise complete C45 input
 controls, one-input sweeps and an unchanged control with edited-minus-control
 temperature/forcing readouts. Keep these analyses bounded and distinguish the
-surface experiment from warming relative to the 280 ppm reference. See
-`scripts/REFLECT_NEXT.md` for the remaining work; these features are not yet built.
+surface experiment from warming relative to the 280 ppm reference. The tile
+editor now exposes all eleven C45 inputs independently; moisture uses m³/m³ and
+temperature uses kelvin. Temperature edits affect C45 reflection only and remain
+prescribed during climate integration. Detect changes and restore originals across
+all eleven fields, including soil and air inputs even when surface classification
+stays unchanged. Bounds are exploration guardrails, not validated training ranges.
+See `scripts/REFLECT_NEXT.md` for the remaining sweeps and control comparisons.
 
 The user stopped offline simulations; do not resume them without a new request.

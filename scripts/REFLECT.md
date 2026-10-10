@@ -110,7 +110,19 @@ tile to compare its current and original high/low cover, current C45 albedo and
 local absorbed-sunlight change. This is the albedo contribution to a land-cover
 experiment; it excludes carbon release, evapotranspiration and ecosystem feedbacks.
 
-The tile dialog also edits high/low cover, leaf area, elevation and snow exactly.
+The tile dialog edits all eleven C45 inputs independently: high/low cover,
+high/low leaf area, elevation, snow depth, top/deep soil moisture, top/deep soil
+temperature and near-surface air temperature. Moisture uses m³/m³ (0–1) and
+temperature uses kelvin (150–350 K; 273.15 K = 0°C). These bounds are exploration
+guardrails, not validated training ranges. Temperature edits change the albedo
+inputs, not FaIR's thermal state; they remain fixed during climate integration.
+The three temperature inputs initially share the sourced land-temperature proxy,
+but editing one does not change either of the others. Top/deep moisture retain
+the initial swl1/swl2 source convention.
+
+Only changed fields are sent, so display rounding cannot rewrite any other input.
+All eleven fields participate in coefficient invalidation and exact restoration,
+including edits that leave the visual vegetation classification unchanged.
 Cover must total at most 100%; ocean tiles disable this form. Unsaved form values
 survive running climate snapshots. Applying physical surface inputs clears a
 manual albedo override for that land tile so learned C45 actually supplies the
@@ -138,6 +150,16 @@ with fixed solar longitude 282.94°, eccentricity 0.0167, tilt 23.44° and perio
 365.2422 days. Changing eccentricity retains that period. Insolation is 1361/r²
 W/m². Latitude-dependent daily means include polar day/night; a small spatial
 quadrature correction gives exact global incoming S(r)/4.
+
+Regional albedo edits are weighted by their actual incoming sunlight and spherical
+cell areas. C45's black-sky reflection uses radiation-weighted solar-zenith kernels
+across the sunlit day; the diffuse component uses white-sky reflection. Latitude
+and season therefore affect both the available sunlight and angular reflection.
+Longitude does not change daily solar geometry at a given latitude, but sourced
+land inputs and spatial scattering vary with longitude. The visible annual globe
+rotation does not set physical irradiance. A regional forcing comparison is
+meaningful; the approximate regional temperature map is not a resolved circulation
+or geographically calibrated climate-impact model.
 
 The calendar begins in the visitor's current UTC season. Default playback is
 one model year in ten seconds. Display rotation makes one turn per model year,

@@ -11,7 +11,9 @@ export const DEFAULTS={co2:280,eccentricity:.0167,tilt:23.44,scatter:.3,width:12
 export const forcing=co2=>5.35*Math.log(co2/280);
 const mod=(x,n)=>(x%n+n)%n;
 const LAND_MODES=new Set(['low-vegetation','high-vegetation','bare-ground','snow-cover','raise-terrain','lower-terrain','land-inputs','restore']);
-const LAND_FIELDS={high:[0,1],low:[1,1],height:[6,9000],highLai:[7,15],lowLai:[8,15],snow:[9,10]};
+// Index, minimum and maximum in the physical input vector's units. These are
+// exploration guardrails, not a claim about the learned model's training range.
+const LAND_FIELDS={high:[0,0,1],low:[1,0,1],topMoisture:[2,0,1],topTemperature:[3,150,350],deepMoisture:[4,0,1],deepTemperature:[5,150,350],height:[6,0,9000],highLai:[7,0,15],lowLai:[8,0,15],snow:[9,0,10],airTemperature:[10,150,350]};
 export function orbit(day,config=DEFAULTS) {
   const e=config.eccentricity,mean=TAU*(day-2)/YEAR;let anomaly=mean;
   for(let j=0;j<8;j++)anomaly-=(anomaly-e*Math.sin(anomaly)-mean)/(1-e*Math.cos(anomaly));
@@ -136,6 +138,7 @@ export class Planet {
     const slot=this.landSlots[index];if(slot<0)return false;
     const offset=slot*11,p=this.landInputs.subarray(offset,offset+11),total=p[0]+p[1];
     const high=p[0],low=p[1],height=p[6],highLai=p[7],lowLai=p[8],snow=p[9];
+    let changed=false;
     if(mode==='low-vegetation'&&total>0){
       p[0]*=1-weight;p[1]=total-p[0];p[7]*=1-weight;p[8]+=(2-p[8])*weight;
     }else if(mode==='high-vegetation'&&total>0){
@@ -147,9 +150,13 @@ export class Planet {
     else if(mode==='land-inputs'){
       // Apply only explicitly changed fields. Display rounding must never
       // rewrite untouched source inputs or create an unrequested forcing.
-      for(const [key,next] of Object.entries(value))p[LAND_FIELDS[key][0]]=next;
-    }else if(mode==='restore')this.landInputs.set(this.baseLandInputs.subarray(offset,offset+11),offset);
-    const changed=high!==p[0]||low!==p[1]||height!==p[6]||highLai!==p[7]||lowLai!==p[8]||snow!==p[9];
+      for(const [key,next] of Object.entries(value)){const field=LAND_FIELDS[key][0];changed=changed||p[field]!==Math.fround(next);p[field]=next;}
+    }else if(mode==='restore'){
+      const original=this.baseLandInputs.subarray(offset,offset+11);
+      for(let field=0;field<11;field++)changed=changed||p[field]!==original[field];
+      p.set(original);
+    }
+    changed=changed||high!==p[0]||low!==p[1]||height!==p[6]||highLai!==p[7]||lowLai!==p[8]||snow!==p[9];
     if(changed){this.refreshLand(index);this.surfaceRevision++;}
     return changed;
   }
@@ -254,7 +261,7 @@ export class Planet {
     if(mode==='albedo'&&!Number.isNaN(value)&&(!Number.isFinite(value)||value<0||value>1))throw new Error('Albedo must be a number from 0 to 1, or blank for the surface scheme');
     if(mode==='land-inputs'){
       if(!Number.isInteger(index)||index<0||index>=this.grid.count||this.landSlots[index]<0)throw new Error('Select a land tile to edit surface inputs');
-      if(!value||typeof value!=='object'||Array.isArray(value)||Object.entries(value).some(([key,next])=>!Object.hasOwn(LAND_FIELDS,key)||!Number.isFinite(next)||next<0||next>LAND_FIELDS[key][1]))throw new Error('Invalid land input value');
+      if(!value||typeof value!=='object'||Array.isArray(value)||Object.entries(value).some(([key,next])=>!Object.hasOwn(LAND_FIELDS,key)||!Number.isFinite(next)||next<LAND_FIELDS[key][1]||next>LAND_FIELDS[key][2]))throw new Error('Invalid land input value: check the displayed limits');
       const offset=this.landSlots[index]*11,high=value.high??this.landInputs[offset],low=value.low??this.landInputs[offset+1];
       if(high+low>1+1e-7)throw new Error('High and low vegetation cover must total at most 100%');
       if(Object.keys(value).length===0){this.lastEdit={mode,changedCells:0,area:0};return;}

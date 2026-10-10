@@ -9,7 +9,7 @@ let worker=null,grid=null,fields=null,metrics=null,history=[],selected=-1,ready=
 let paintBusy=false,pendingPaint=null;
 let landDraftIndex=-1,landDraftDirty=false;
 let coordinateDraftDirty=false,landApplyIndex=-1,landDraftValues={},landDraftDisplay={};
-const landFields=[['tile-high-cover',0,100,'high'],['tile-low-cover',1,100,'low'],['tile-high-lai',7,1,'highLai'],['tile-low-lai',8,1,'lowLai'],['tile-height',6,1,'height'],['tile-snow',9,1000,'snow']];
+const landFields=[['tile-high-cover',0,100,'high',2],['tile-low-cover',1,100,'low',2],['tile-high-lai',7,1,'highLai',2],['tile-low-lai',8,1,'lowLai',2],['tile-height',6,1,'height',0],['tile-snow',9,1000,'snow',1],['tile-top-moisture',2,1,'topMoisture',3],['tile-deep-moisture',4,1,'deepMoisture',3],['tile-top-temperature',3,1,'topTemperature',2],['tile-deep-temperature',5,1,'deepTemperature',2],['tile-air-temperature',10,1,'airTemperature',2]];
 const paintNotes={
  'low-vegetation':'Convert high cover to low; low leaf area → 2.',
  'high-vegetation':'Convert low cover to high; high leaf area → 5.',
@@ -134,22 +134,22 @@ function showInspection(tile){
  $('inspector-summary').textContent=`${names[tile.kind]} · ${tile.latitude.toFixed(2)}° latitude, ${tile.longitude.toFixed(2)}° longitude · ${Math.round(tile.area).toLocaleString()} km²`;
  const list=$('tile-summary');list.replaceChildren();
  const rows= [['Model temperature',tile.temperature.toFixed(2)+'°C'],['Incoming light',tile.incoming.toFixed(1)+' W/m²'],['Current albedo',tile.albedo.toFixed(3)],['Diffuse fraction',(tile.diffuse*100).toFixed(1)+'%'],['Net flux',signed(tile.net)+' W/m²'],['Absorbed sunlight change',signed(tile.shortwaveChange,3)+' W/m²']];
- if(tile.inputs){const p=tile.inputs;rows.push(['High / low vegetation',`${(p[0]*100).toFixed(1)} / ${(p[1]*100).toFixed(1)}%`],['High / low leaf area',`${p[7].toFixed(2)} / ${p[8].toFixed(2)} m²/m²`],['Elevation',`${p[6].toFixed(0)} m`],['Soil moisture · layers 1 / 2',`${p[2].toFixed(3)} / ${p[4].toFixed(3)} m³/m³`],['Temperature input · proxy',`${p[3].toFixed(2)} K`],['Snow · water equivalent',`${(p[9]*1000).toFixed(1)} mm`]);}
+ if(tile.inputs){const p=tile.inputs;rows.push(['High / low vegetation',`${(p[0]*100).toFixed(1)} / ${(p[1]*100).toFixed(1)}%`],['High / low leaf area',`${p[7].toFixed(2)} / ${p[8].toFixed(2)} m²/m²`],['Elevation',`${p[6].toFixed(0)} m`],['Soil moisture · top / deep',`${p[2].toFixed(3)} / ${p[4].toFixed(3)} m³/m³`],['Soil temperature · top / deep',`${p[3].toFixed(2)} / ${p[5].toFixed(2)} K`],['Air temperature · C45 input',`${p[10].toFixed(2)} K`],['Snow · water equivalent',`${(p[9]*1000).toFixed(1)} mm`]);}
  else rows.push(['Initial sea-ice concentration',`${(tile.ice*100).toFixed(1)}%`]);
  if(tile.referenceInputs){const p=tile.referenceInputs;rows.push(['Original high / low cover',`${(p[0]*100).toFixed(1)} / ${(p[1]*100).toFixed(1)}%`]);}
  rows.push(['Coastal interpolation',tile.boundaryFlags&2?'Nearest valid source location':tile.boundaryFlags&1?'Valid neighbours only':'Bilinear source samples']);
- $('boundary-note').textContent=`SpeedyWeatherAssets climatology sampled for ${tile.boundary.date}. The reference retains these original inputs. `+(tile.inputs?'Painted cover, leaf area, elevation and snow update C45. Soil moisture and temperature stay prescribed; land-surface temperature supplies both soil-temperature inputs and the air-temperature proxy.':'Ocean albedo uses Jin with this prescribed fractional ice cover.');
+ $('boundary-note').textContent=`SpeedyWeatherAssets climatology sampled for ${tile.boundary.date}. The reference retains these original inputs. `+(tile.inputs?'All eleven C45 inputs can be edited independently below. Initially, land-surface temperature supplies both soil temperatures and the air-temperature proxy. Temperature inputs affect albedo; they do not set the simulated climate temperature.':'Ocean albedo uses Jin with this prescribed fractional ice cover.');
  for(const [label,value] of rows){const div=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;div.append(dt,dd);list.append(div);}
  $('tile-albedo').disabled=false;$('tile-scatter').disabled=false;$('restore-tile').disabled=false;
  if(document.activeElement!==$('tile-albedo'))$('tile-albedo').value=tile.override===null?'':tile.override.toFixed(3);
  if(document.activeElement!==$('tile-scatter'))$('tile-scatter').value=tile.factor.toFixed(3);
  $('land-editor').disabled=!tile.inputs||landApplyIndex===tile.index;
- if(tile.inputs&&!landDraftDirty)for(const [id,index,scale,key] of landFields){
+ if(tile.inputs&&!landDraftDirty)for(const [id,index,scale,key,digits] of landFields){
   const value=id==='tile-low-cover'?Math.min(tile.inputs[index]*scale,100-Number((tile.inputs[0]*100).toFixed(2))):tile.inputs[index]*scale;
-  const display=value.toFixed(id==='tile-height'?0:id==='tile-snow'?1:2);
+  const display=value.toFixed(digits);
   $(id).value=display;landDraftValues[key]=tile.inputs[index];landDraftDisplay[key]=display;
  }
- if(!landDraftDirty)$('land-editor-note').textContent=tile.inputs?'High and low cover must total at most 100%. Soil inputs stay prescribed.':'Select a land tile to edit vegetation, elevation and snow.';
+ if(!landDraftDirty)$('land-editor-note').textContent=tile.inputs?'Inputs change independently. High and low cover must total at most 100%.':'Select a land tile to edit its C45 inputs.';
  if(brush==='inspect'||$('inspector').open)renderer.selection={latitude:tile.latitude*Math.PI/180,longitude:tile.longitude*Math.PI/180,radius:Number($('radius').value)*1000/RADIUS};renderer.draw(metrics?.orbital);
 }
 function inspect(location,open=true){

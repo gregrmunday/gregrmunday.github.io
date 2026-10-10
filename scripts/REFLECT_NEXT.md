@@ -87,9 +87,13 @@ The current prototype connects C45 edits to global absorbed-shortwave forcing
 and FaIR temperature response. It does not yet isolate sensitivity to every C45
 input, or display the extra temperature response of a surface experiment clearly.
 
-1. Expose all eleven physical C45 inputs. Top/deep soil moisture, top/deep soil
-   temperature and the air-temperature proxy currently remain prescribed. Keep
-   reference inputs immutable and document independent versus linked edits.
+1. **Completed:** the tile editor exposes all eleven physical C45 inputs, including
+   independent top/deep soil moisture, top/deep soil temperature and near-surface
+   air-temperature inputs. Original inputs remain immutable. Edits preserve exact
+   untouched values, invalidate C45 coefficients for any of the eleven inputs,
+   and restore all fields without changing thermal history. Temperature controls
+   are in kelvin and affect albedo only; their 150–350 K bounds and moisture's
+   0–1 m³/m³ bounds are exploration guardrails, not training-range claims.
 2. Add an unchanged control with identical CO₂, orbit and atmospheric settings,
    showing edited-minus-control temperature, absorbed radiation and imbalance.
    The existing 280 ppm reference warming is not a surface-only temperature metric.
@@ -101,6 +105,10 @@ input, or display the extra temperature response of a surface experiment clearly
    ecosystem/carbon/ice/cloud feedbacks so this remains an educational experiment.
 5. Pursue temperature-goal gameplay after these comparisons are clear. Any new
    offline climate validation requires a fresh user request.
+
+The complete-input editor update received static code/diff review, module syntax
+checks and a Jekyll build. No new automated tests, browser exercise or offline
+simulation were run for this feature update.
 
 ## Completed review
 
