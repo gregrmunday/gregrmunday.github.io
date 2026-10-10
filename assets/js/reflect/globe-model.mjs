@@ -1,3 +1,4 @@
+import { ScatterKernel } from './scatter-kernel.mjs';
 import { reflectedFlux } from './radiative-transfer.mjs';
 // Spherical, hourly anomaly EBM. No dependencies and no frame history.
 import { brdf, clamp } from './model.mjs';
@@ -61,6 +62,7 @@ function graph(grid) {
 export function gaussianScatter(values,grid,edges,width,scratch) {
   if(width<=0)return values;
   const duration=.5*(width*1000/RADIUS)**2,steps=Math.max(1,Math.ceil(duration*edges.maximum/.42)),dt=duration/steps;
+  if(edges.accelerator)return edges.accelerator.apply(values,steps,dt);
   let input=values,output=scratch;
   for(let k=0;k<steps;k++){
     output.set(input);
@@ -97,14 +99,15 @@ export function hourlySun(grid,day,config,incoming,vol,geo,ocean,oceanLookup) {
   return {...state,utcHour,subsolarLongitude};
 }
 export class Planet {
-  constructor({spacing=100,seed=42,boundary,cack,...config}={}) {
+  constructor({spacing=100,seed=42,boundary,cack,scatterModule,...config}={}) {
     if(!boundary||typeof boundary.landInputs!=="function")throw new Error("Surface boundary data is missing");
     const month=config.initialMonth??0,fraction=config.monthFraction??0;
     if(!Number.isInteger(month)||month<0||month>11||!Number.isFinite(fraction)||fraction<0||fraction>=1)throw new Error("Invalid surface initialisation date");
     this.boundaryInfo={source:boundary.source,commit:boundary.commit,date:config.boundaryDate??"January climatology"};
     this.config={...DEFAULTS,co2:PRESENT_CO2.ppm,...config};this.startDay=(Number(config.startDay)||0)+(Number(config.startHour)||0)/24;this.responses=ECS.map(ecs=>new FairResponse(ecs,DOUBLING,STEP_DAYS/YEAR));this.controlResponses=ECS.map(ecs=>new FairResponse(ecs,DOUBLING,STEP_DAYS/YEAR));this.grid=sphericalGrid(spacing);const n=this.grid.count;this.edges=graph(this.grid);
+    if(scatterModule){try{this.edges.accelerator=new ScatterKernel(scatterModule,this.grid,this.edges);}catch{/* Preserve the JS solver if acceleration is unavailable. */}}
     this.seed=seed;this.cack=cack??null;if(this.cack)this.cack.bind(this.grid,orbit,DEFAULTS,YEAR);
-    this.transferControl=new Float64Array(6);this.physicalChanged=new Uint8Array(n);
+    this.transferControl=new Float64Array(6);this.physicalChanged=new Uint8Array(n);this.scatteringChanged=new Set();this.scattered=null;
     this.ice=new Float32Array(n);this.boundaryFlags=new Uint8Array(n);this.landSlots=new Int32Array(n).fill(-1);
     let landCount=0;for(let i=0;i<n;i++)if(boundary.isLand(this.grid.latitude[i],this.grid.longitude[i]))this.landSlots[i]=landCount++;
     this.landInputs=new Float32Array(landCount*11);
@@ -188,33 +191,34 @@ export class Planet {
       const radiation=this.sunField[i],f=clamp(config.scatter*(reference?this.baseScatter[i]:this.scatterFactor[i]),0,.95);
       this.direct[i]=transmission*radiation*(1-f);this.diffuse[i]=transmission*radiation*f;
     }
-    const diffuse=gaussianScatter(this.diffuse,grid,this.edges,config.width,this.scratch);
+    const diffuse=config.scatter===0?this.diffuse:gaussianScatter(this.diffuse,grid,this.edges,config.width,this.scratch);this.scattered=diffuse;
     const kernel=!reference&&config.landKernel==='cack'&&this.cack?this.cack.factors(day):null;
-    for(let i=0;i<n;i++){
-      const slot=this.landSlots[i];let black,white;
-      if(slot<0){const ice=this.ice[i];black=(1-ice)*this.oceanField[i]+ice*.6;white=(1-ice)*oceanWhite+ice*.6;}
-      else{
-        const coefficients=reference?this.referenceCoefficients:this.coefficients,offset=slot*3,iso=coefficients[offset],v=coefficients[offset+1],g=coefficients[offset+2];
-        black=iso+this.volField[i]*v+this.geoField[i]*g;white=iso+.189184*v-1.377622*g;
-      }
-      if(!reference&&Number.isFinite(this.override[i]))black=white=this.override[i];
-      const flux=reflectedFlux(this.direct[i],diffuse[i],black,white,screening,this.transfer),incoming=flux[0];
-      // Atmospheric reflection escapes directly; transmitted surface reflection
-      // escapes after a convergent series of atmosphere/surface bounces.
-      target[i]=this.sunField[i]*(1-atmosphericReflection)-flux[3];
-      if(kernel&&slot>=0&&this.physicalChanged[i]){
-        const o=slot*3,c=this.referenceCoefficients;
-        // Isolate the albedo intervention under identical edited illumination.
-        // Keep any scattering-only effect in the illustrative baseline budget.
-        const original=reflectedFlux(this.direct[i],diffuse[i],c[o]+this.volField[i]*c[o+1]+this.geoField[i]*c[o+2],c[o]+.189184*c[o+1]-1.377622*c[o+2],screening,this.transferControl);
-        const illumination=(this.direct[i]+diffuse[i])/transmission;
-        // CACK already contains all-sky screening: replace, never multiply,
-        // the two-stream albedo contribution. Its monthly mean is distributed
-        // over the hourly sunlight cycle relative to reference monthly insolation.
-        target[i]=this.sunField[i]*(1-atmosphericReflection)-original[3]-kernel[i]*illumination*(flux[5]-original[5]);
-      }
-      if(capture){this.incoming[i]=incoming;this.albedo[i]=flux[5];this.surfaceAbsorbed[i]=flux[2];this.clipped[i]=flux[4];this.fraction[i]=incoming>0?(incoming-this.direct[i])/incoming:clamp(config.scatter*this.scatterFactor[i],0,.95);}
+    for(let i=0;i<n;i++)this.reflectCell(i,config,reference,target,capture,diffuse,kernel,oceanWhite,screening,transmission,atmosphericReflection);
+  }
+  reflectCell(i,config,reference,target,capture,diffuse,kernel,oceanWhite,screening,transmission,atmosphericReflection) {
+    const slot=this.landSlots[i];let black,white;
+    if(slot<0){const ice=this.ice[i];black=(1-ice)*this.oceanField[i]+ice*.6;white=(1-ice)*oceanWhite+ice*.6;}
+    else{
+      const coefficients=reference?this.referenceCoefficients:this.coefficients,offset=slot*3,iso=coefficients[offset],v=coefficients[offset+1],g=coefficients[offset+2];
+      black=iso+this.volField[i]*v+this.geoField[i]*g;white=iso+.189184*v-1.377622*g;
     }
+    if(!reference&&Number.isFinite(this.override[i]))black=white=this.override[i];
+    const flux=reflectedFlux(this.direct[i],diffuse[i],black,white,screening,this.transfer),incoming=flux[0];
+    // Atmospheric reflection escapes directly; transmitted surface reflection
+    // escapes after a convergent series of atmosphere/surface bounces.
+    target[i]=this.sunField[i]*(1-atmosphericReflection)-flux[3];
+    if(kernel&&slot>=0&&this.physicalChanged[i]){
+      const o=slot*3,c=this.referenceCoefficients;
+      // Isolate the albedo intervention under identical edited illumination.
+      // Keep any scattering-only effect in the illustrative baseline budget.
+      const original=reflectedFlux(this.direct[i],diffuse[i],c[o]+this.volField[i]*c[o+1]+this.geoField[i]*c[o+2],c[o]+.189184*c[o+1]-1.377622*c[o+2],screening,this.transferControl);
+      const illumination=(this.direct[i]+diffuse[i])/transmission;
+      // CACK already contains all-sky screening: replace, never multiply,
+      // the two-stream albedo contribution. Its monthly mean is distributed
+      // over the hourly sunlight cycle relative to reference monthly insolation.
+      target[i]=this.sunField[i]*(1-atmosphericReflection)-original[3]-kernel[i]*illumination*(flux[5]-original[5]);
+    }
+    if(capture){this.incoming[i]=incoming;this.albedo[i]=flux[5];this.surfaceAbsorbed[i]=flux[2];this.clipped[i]=flux[4];this.fraction[i]=incoming>0?(incoming-this.direct[i])/incoming:clamp(config.scatter*this.scatterFactor[i],0,.95);}
   }
   async initialize(yieldProgress=async()=>{}) {
     // Resolve 24 solar phases at each of 48 seasons for startup quadrature.
@@ -277,21 +281,28 @@ export class Planet {
     else this.shortwave(this.startDay+day,this.config,true,this.controlAbsorbed,true);
     this.controlAlbedo.set(this.albedo);this.controlSurfaceAbsorbed.set(this.surfaceAbsorbed);
     if(this.changedCells.size===0)this.absorbed.set(this.controlAbsorbed);
-    else this.shortwave(this.startDay+day,this.config,false,this.absorbed);
+    else if(this.scatteringChanged.size===0){
+      // Land/ocean albedo changes do not alter downward illumination. Reuse the
+      // control's full-resolution solar/scattering solve, updating only edits.
+      this.absorbed.set(this.controlAbsorbed);
+      const config=this.config,screening=config.screening??1,transmission=1-.25*screening,reflection=.2*screening;
+      const kernel=config.landKernel==='cack'&&this.cack?this.cack.factors(this.startDay+day):null,oceanWhite=diffuseOcean(config.wind);
+      for(const i of this.changedCells)this.reflectCell(i,config,false,this.absorbed,true,this.scattered,kernel,oceanWhite,screening,transmission,reflection);
+    }else this.shortwave(this.startDay+day,this.config,false,this.absorbed);
 
   }
   step(diagnose=true) {
-    this.calculate((this.hours+.5)/24);const F=forcing(this.config.co2),n=this.grid.count,B=this.responses[1].feedback;let referenceForcing=0,shortwaveForcing=0,controlForcing=0,localMean=0,controlMean=0,seasonalMean=0,incoming=0,absorbed=0;
+    this.calculate((this.hours+.5)/24);const F=forcing(this.config.co2),n=this.grid.count,B=this.responses[1].feedback,inverseFeedback=1/B;let referenceForcing=0,shortwaveForcing=0,controlForcing=0,localMean=0,controlMean=0,seasonalMean=0,incoming=0,absorbed=0;
     for(let i=0;i<n;i++){
       const previous=this.seasonalT[i],referenceForce=this.referenceAbsorbed[i]-this.baselineAnnual[i],weight=this.grid.area[i]/(4*Math.PI),decay=this.hourDecay[i];
-      const referenceEquilibrium=referenceForce/B;
+      const referenceEquilibrium=referenceForce*inverseFeedback;
       this.seasonalT[i]=referenceEquilibrium+(previous-referenceEquilibrium)*decay;
       const delta=this.absorbed[i]-this.referenceAbsorbed[i];shortwaveForcing+=delta*weight;
       const controlDelta=this.controlAbsorbed[i]-this.referenceAbsorbed[i];controlForcing+=controlDelta*weight;
-      const controlEquilibrium=(controlDelta+F)/B;
+      const controlEquilibrium=(controlDelta+F)*inverseFeedback;
       this.localControl[i]=controlEquilibrium+(this.localControl[i]-controlEquilibrium)*decay;controlMean+=this.localControl[i]*weight;
       incoming+=this.sunField[i]*weight;absorbed+=this.absorbed[i]*weight;
-      const equilibrium=(delta+F)/B;
+      const equilibrium=(delta+F)*inverseFeedback;
       this.localAnomaly[i]=equilibrium+(this.localAnomaly[i]-equilibrium)*decay;localMean+=this.localAnomaly[i]*weight;
       seasonalMean+=this.seasonalT[i]*weight;referenceForcing+=referenceForce*weight;
     }
@@ -369,7 +380,9 @@ export class Planet {
   trackCell(i) {
     const slot=this.landSlots[i];let physical=Number.isFinite(this.override[i]);
     if(slot>=0)for(let k=0;k<11;k++)physical=physical||this.landInputs[slot*11+k]!==this.baseLandInputs[slot*11+k];
-    this.physicalChanged[i]=physical?1:0;const changed=physical||this.scatterFactor[i]!==this.baseScatter[i];
+    this.physicalChanged[i]=physical?1:0;const scattering=this.scatterFactor[i]!==this.baseScatter[i];
+    if(scattering)this.scatteringChanged.add(i);else this.scatteringChanged.delete(i);
+    const changed=physical||scattering;
     if(changed)this.changedCells.add(i);else this.changedCells.delete(i);
   }
   restoreEdits(indices,values) {

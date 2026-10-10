@@ -1,4 +1,18 @@
-# Reflectance work status — 10 October 2026
+# Reflectance work status — 11 October 2026
+
+## Painting and performance update — 11 October 2026
+
+- Editing tools now keep the landscape evenly lit in both renderers. The physical
+  hourly sunlight remains unchanged; Rotate restores day/night shading.
+- Albedo/land-input edits reuse control illumination and recalculate only changed
+  reflection cells. Local scattering changes retain the full field solve.
+- Added an optional 265-byte Float64 WebAssembly Gaussian loop, bounded heap and
+  existing JavaScript fallback; source and pinned offline build are documented.
+- Removed the 34 ms physics delay after daily outputs. Scene drawing is throttled
+  independently, retaining hourly integration and daily diagnostics.
+- A pure scattering-operator microbenchmark measured about 2.1× faster native
+  execution locally; it is not a browser-wide speed claim or climate validation.
+  Cancelled offline climate simulations remain stopped.
 
 ## Scientific and interface improvements — current checkpoint
 
@@ -24,7 +38,7 @@
 
 Module syntax checks, Jekyll compilation and a paused local desktop/mobile visual
 preview have been performed. The built site excludes the raw CACK directory and
-NetCDF files. No new automated model tests, performance benchmark, thermal drift
+NetCDF files. No new automated model tests, thermal drift
 study or offline climate simulations have been run. The earlier review notes below
 are historical and do not validate these newer physics/features.
 

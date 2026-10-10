@@ -185,7 +185,7 @@ UTC hour, so the displayed terminator does not sweep through a diurnal cycle;
 manual hour stepping exposes it.
 
 Display orientation makes one decorative viewing turn per model year. The actual
-day/night shading now uses the physical subsolar point in Earth coordinates in
+Outside editing, day/night shading uses the physical subsolar point in Earth coordinates in
 both WebGL and Canvas; orbiting the camera does not move the Sun geographically.
 Reduced-motion preferences disable automatic viewing rotation; selecting a
 painting/inspection tool also holds the camera orientation still. Automatic
@@ -479,8 +479,7 @@ factor planes. Source conversion uses Python only offline.
 
 Eight Float32 fields form each **1,629,824-byte** snapshot at 100 km, returned to
 a pool of at most two worker buffers. The main thread retains only its current
-snapshot. Undo history and previews have explicit limits. No measured total-browser
-memory/performance claim is made; browser and graphics overhead vary.
+snapshot. Undo history and previews have explicit limits. Browser and graphics overhead vary; no total-browser memory claim is made.
 At most one advance is in flight, with at most 192 requested hours and a
 32 ms processing budget checked after each hour. Automatic batches also stop at
 the next 24-hour output boundary. Intermediate replies carry only a completed-hour
@@ -488,9 +487,11 @@ count; the caller carries remaining demand forward without globe frames, endpoin
 radiation diagnostics, inspector rebuilding or graph updates. Full diagnostics and
 pooled frames are published at daily boundaries and explicit interaction requests;
 monthly scalar history remains independent. The scheduler uses requestAnimationFrame
-for bounded requests, with a 34 ms gap after a full output to cap automatic drawing
-below 30 fps. There is no automatic rendering between outputs, and surface mode
-still needs no texture upload for viewing rotation.
+for bounded requests. Physics no longer waits 34 ms after every output: a separate
+coalesced drawing request caps automatic scene drawing below 30 fps and uses the
+latest daily snapshot. Every hourly step and every daily diagnostic is still
+produced; only redundant scene draws are coalesced. Surface mode needs no texture
+upload for viewing rotation.
 Slower devices can run below the selected playback speed without skipping hourly
 physics. Hidden pages pause; restart/page exit terminates the worker.
 
@@ -498,6 +499,42 @@ Native WebGL uses one shader and a 720×360 texture. Pixel count is capped at
 1.2 million and DPR at 1.5. Canvas fallback ray-casts a reusable 512×384 image.
 Paused views have no idle animation loop. No runtime libraries, remote textures,
 API calls or uploads are needed; the compact boundary maps are same-origin static assets.
+
+### October 2026 performance update
+
+For albedo and physical land edits, `calculate` reuses the matched control's
+full-resolution illumination and updates reflection only for changed cells.
+Scattering edits still recalculate the full field because redistribution can
+change unedited neighbours. Undo, restore and loaded setups track scattering
+changes separately; no baseline or thermal history is reset by this optimization.
+A zero global scattering dial skips the zero-field Gaussian solve.
+
+The Gaussian finite-volume loop optionally uses a **265-byte WebAssembly module**
+(`scatter.wasm`). It compiles the existing bilateral conductances into contiguous
+rows `g_ij / area_i`, keeping the same stable substep count and Float64 arithmetic.
+This changes summation order, so floating-point roundoff can differ from the JS
+edge loop; no radiation or climate equations are replaced. Unsupported/blocked
+WebAssembly or a failed download uses the existing JS path. The bounded 100 km
+native heap is 4,587,520 bytes (70 pages); its row graph replaces the JS edge
+arrays, and two work planes are reused. There is no heap growth or hourly archive.
+
+A local Node/V8 microbenchmark of the 50,932-cell, 120 km scattering operator
+measured approximately 2.90 ms per call before and 1.39 ms in the native row loop,
+including input/output copies: about 2.1× for this operator. This does not establish
+an overall browser speedup or a universal playback rate. Only the numerical
+operator was timed; no thermal integration or offline climate study was resumed.
+
+The readable source is `scripts/reflect_scatter.wat`; rebuild with pinned WABT
+1.0.39, used only as an offline compiler:
+
+```sh
+npm install --prefix /private/tmp/reflect-wasm-build --no-audit --no-fund wabt@1.0.39
+node scripts/build_reflect_scatter.mjs /private/tmp/reflect-wasm-build/node_modules/wabt
+```
+
+No compiler/package files are shipped. Paint, restore and inspect tools display
+an evenly lit landscape in WebGL and Canvas; Rotate restores the physical
+sunlight shading. This rendering choice never modifies simulated illumination.
 
 ## Sources
 

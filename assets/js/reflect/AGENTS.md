@@ -213,8 +213,23 @@ Slower devices may take longer than the playback target. The +1 hour button and
 slow playback must retain the same hourly physics. Do not run the cancelled
 offline simulations without a new request.
 
-Automatic viewing rotation/drawing advances only on full outputs, with a 34 ms
-minimum scheduler gap afterwards to cap automatic drawing below 30 fps. Keep
-requestAnimationFrame for scheduling only; do not restore continuous scene redraws
-between daily outputs. Daily snapshots sample the same UTC hour and cannot show
-the daily terminator sweep; explain this and retain immediate +1 hour stepping.
+Automatic viewing rotation advances only on full outputs. Coalesce automatic
+scene draws with a 34 ms minimum gap, independently of physics requests. Do not
+make the worker wait after every daily output. Keep all daily diagnostics even
+when redundant scene draws are coalesced; explicit interactions draw immediately.
+Use the evenly lit editing view for Paint/Restore/Inspect, preserving physical
+hourly illumination in the model. Rotate retains day/night shading.
+
+The optional `scatter.wasm` helper uses the same Float64 finite-volume operator
+and stable substep count as the JavaScript fallback. It compiles the bilateral
+graph into CSR rows; summation order can differ at roundoff level. Its fixed heap
+replaces the old graph arrays and reuses two work planes. Preserve JS fallback
+when module loading/setup fails. WABT 1.0.39 is an offline build tool, never a
+runtime dependency. Keep source and rebuild instructions beside the tiny binary.
+
+Physical/albedo surface edits reuse the matched control's illumination and update
+only changed reflection cells. Track local scattering separately: those changes
+must retain the full Gaussian solve because they affect neighbouring cells.
+Undo, restoration and saved surfaces must update both change sets correctly.
+Daily snapshots sample the same UTC hour and cannot show the daily terminator
+sweep; explain this and retain immediate +1 hour stepping.

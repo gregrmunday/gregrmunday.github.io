@@ -4,7 +4,7 @@ import { PRESENT_CO2 } from './co2-baseline.mjs';
 const today=new Date(),startDay=(Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate())-Date.UTC(today.getUTCFullYear(),0,1))/86400000;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 let flatCursor={latitude:0,longitude:0};
-let displayDay=0,lastOutputTime=0,loadedSetup=null,initialSettings=null,analysisRequest=0,analysisResult=null,inspection=null,analysisPending=false;
+let displayDay=0,lastSceneDraw=0,sceneDrawRequest=0,loadedSetup=null,initialSettings=null,analysisRequest=0,analysisResult=null,inspection=null,analysisPending=false;
 const $=id=>document.getElementById(id),canvas=$('planet'),renderer=new GlobeRenderer(canvas),names=['Ocean','Sea ice','High vegetation','Low vegetation','Bare soil','Snow'];
 let worker=null,grid=null,fields=null,metrics=null,history=[],selected=-1,ready=false,running=false,busy=false,queuedHours=0,brush='rotate',view='surface',animation=0,lastTick=0,accumulator=0,configurationTimer=0,paintTime=0,drag=null,lastFrame=0;
 let paintBusy=false,pendingPaint=null,inFlightHours=0,inFlightManual=false;
@@ -33,7 +33,7 @@ function setOutputs(){
 function initialize(restore=false){
  if(restore){initialSettings=null;loadedSetup=null;}
  analysisRequest++;analysisResult=null;inspection=null;analysisPending=false;$('sensitivity-chart').hidden=true;$('sensitivity-run').disabled=$('sensitivity-apply').disabled=true;
- pause();if(worker)worker.terminate();fields=null;metrics=null;history=[];selected=-1;ready=false;busy=false;paintBusy=false;pendingPaint=null;drag=null;queuedHours=0;inFlightHours=0;inFlightManual=false;accumulator=0;displayDay=0;renderer.spin=0;renderer.selection=null;
+ pause();cancelAnimationFrame(sceneDrawRequest);sceneDrawRequest=0;if(worker)worker.terminate();fields=null;metrics=null;history=[];selected=-1;ready=false;busy=false;paintBusy=false;pendingPaint=null;drag=null;queuedHours=0;inFlightHours=0;inFlightManual=false;accumulator=0;displayDay=0;renderer.spin=0;renderer.selection=null;
  $('land-editor').disabled=true;$('tile-albedo').disabled=true;$('tile-scatter').disabled=true;$('restore-tile').disabled=true;
  landDraftIndex=-1;landDraftDirty=false;
  coordinateDraftDirty=false;landApplyIndex=-1;landDraftValues={};landDraftDisplay={};
@@ -66,11 +66,10 @@ function initialize(restore=false){
   if(data.type==='edited'&&data.editSummary?.mode==='land-inputs'&&data.inspection?.index===landApplyIndex){if(landApplyIndex===selected)landDraftDirty=false;landApplyIndex=-1;}
   if(data.kinds)renderer.setKinds(data.kinds);
   if(data.fields){
-   lastOutputTime=performance.now();
    if(fields)worker.postMessage({type:'recycle',buffer:fields.buffer},[fields.buffer]);
    if(running&&!reducedMotion.matches&&!drag&&brush==='rotate')renderer.spin-=TAU*(data.metrics.day-displayDay)/YEAR;
    displayDay=data.metrics.day;
-   fields=data.fields;metrics=data.metrics;history=data.history;renderer.update(fields,view);updateUI();if(data.inspection)showInspection(data.inspection,false);renderer.draw(metrics.orbital);
+   fields=data.fields;metrics=data.metrics;history=data.history;updateUI();if(data.inspection)showInspection(data.inspection,false);if(data.type==='advanced'&&running)scheduleSceneDraw();else draw();
   }
   if(data.type==='export-ready')downloadHistory();
   if(data.type==='edited'){
@@ -107,7 +106,7 @@ function pause(){running=false;queuedHours=0;inFlightManual=false;cancelAnimatio
 function advance(hours,manual=false){if(!ready||busy)return;busy=true;inFlightHours=hours;inFlightManual=manual;worker.postMessage({type:'advance',hours,forceOutput:manual});}
 function tick(now){
  if(!running)return;accumulator=Math.min(2*MAX_BATCH_HOURS,accumulator+(now-lastTick)/1000*Number($('speed').value)*24);lastTick=now;
- if(!busy&&now-lastOutputTime>=34&&accumulator>=Math.min(MAX_BATCH_HOURS,Math.max(1,Number($('speed').value)*24/12))){const hours=Math.min(MAX_BATCH_HOURS,Math.floor(accumulator));accumulator-=hours;advance(hours);}
+ if(!busy&&accumulator>=Math.min(MAX_BATCH_HOURS,Math.max(1,Number($('speed').value)*24/12))){const hours=Math.min(MAX_BATCH_HOURS,Math.floor(accumulator));accumulator-=hours;advance(hours);}
  animation=requestAnimationFrame(tick);
 }
 function updateUI(){
@@ -172,7 +171,7 @@ function showInspection(tile,redraw=true){
   $(id).value=display;landDraftValues[key]=tile.inputs[index];landDraftDisplay[key]=display;
  }
  if(!landDraftDirty)$('land-editor-note').textContent=tile.inputs?'Inputs change independently. High and low cover must total at most 100%.':'Select a land tile to edit its learned albedo inputs.';
- if(brush==='inspect'||$('inspector').open)renderer.selection={latitude:tile.latitude*Math.PI/180,longitude:tile.longitude*Math.PI/180,radius:Number($('radius').value)*1000/RADIUS};if(redraw)renderer.draw(metrics?.orbital);
+ if(brush==='inspect'||$('inspector').open)renderer.selection={latitude:tile.latitude*Math.PI/180,longitude:tile.longitude*Math.PI/180,radius:Number($('radius').value)*1000/RADIUS};if(redraw)draw();
 }
 function inspect(location,open=true){
  if(!ready||!location)return;
@@ -187,8 +186,16 @@ function paint(location){
  if(drag)drag.lastPaint=location;
  if(paintBusy)pendingPaint=edit;else sendPaint(edit);
 }
-function selectBrush(next){brush=next;pendingPaint=null;document.querySelectorAll('[data-brush]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.brush===brush)));canvas.style.cursor=brush==='rotate'?'grab':'crosshair';}
-function draw(){if(metrics)renderer.draw(metrics.orbital);}
+function selectBrush(next){brush=next;renderer.editing=brush!=='rotate';renderer.selection=null;draw();pendingPaint=null;document.querySelectorAll('[data-brush]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.brush===brush)));canvas.style.cursor=brush==='rotate'?'grab':'crosshair';}
+function draw(){
+ cancelAnimationFrame(sceneDrawRequest);sceneDrawRequest=0;
+ if(metrics&&fields){renderer.update(fields,view);renderer.draw(metrics.orbital);lastSceneDraw=performance.now();}
+}
+function scheduleSceneDraw(){
+ if(sceneDrawRequest)return;
+ const render=now=>{sceneDrawRequest=0;if(now-lastSceneDraw<34){sceneDrawRequest=requestAnimationFrame(render);return;}draw();};
+ sceneDrawRequest=requestAnimationFrame(render);
+}
 $('run').addEventListener('click',()=>{if(running){pause();status('Paused. Change a forcing or inspect a tile.');}else start();});
 $('step').addEventListener('click',()=>{if(!ready)return;if(running)pause();if(analysisPending)invalidateAnalysis();queuedHours++;if(!busy){queuedHours--;advance(1,true);}});
 $('generate').addEventListener('click',()=>initialize());$('reset').addEventListener('click',()=>initialize(true));
@@ -356,4 +363,4 @@ canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();pause(
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){pause();status('Paused while this page is hidden. Resume when you are ready.');}});
 const co2Date=new Date(PRESENT_CO2.date+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
 $('co2').value=PRESENT_CO2.ppm;$('co2-source').textContent=`NOAA estimate · ${co2Date}`;$('co2-source').href=PRESENT_CO2.url;
-window.addEventListener('pagehide',()=>{pause();worker?.terminate();});setOutputs();renderer.resize();initialize();
+window.addEventListener('pagehide',()=>{pause();cancelAnimationFrame(sceneDrawRequest);worker?.terminate();});setOutputs();renderer.resize();initialize();

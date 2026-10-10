@@ -2,6 +2,7 @@ import { sensitivity } from './sensitivity.mjs';
 import { Planet, LAND_FIELDS } from './globe-model.mjs';
 import { loadBoundary } from './globe-boundary.mjs';
 import { loadCack } from './cack-kernel.mjs';
+import { loadScatterModule } from './scatter-kernel.mjs';
 let planet=null,generation=0,pool=[],selected=-1,surfaceRevision=0,analysisId=0;
 const OUTPUT_HOURS=24;
 const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
@@ -20,9 +21,9 @@ self.onmessage=async({data:message})=>{
       analysisId++;
       const id=++generation;planet=null;pool=[];selected=-1;surfaceRevision=0;
       postMessage({type:'loading'});
-      let [boundary,cack]=await Promise.all([loadBoundary(),loadCack()]);
+      let [boundary,cack,scatterModule]=await Promise.all([loadBoundary(),loadCack(),loadScatterModule()]);
       if(id!==generation)return;
-      const next=new Planet({...message.config,boundary,cack});
+      const next=new Planet({...message.config,boundary,cack,scatterModule});
       boundary=null; // Source buffers can be released after caching learned albedo inputs/BRDFs.
       cack=null;
       await next.initialize(async progress=>{postMessage({type:'progress',progress});await pause();});
