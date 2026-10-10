@@ -164,6 +164,9 @@ idealised equilibrium-at-present-CO₂ experiment, not historical climate or obs
 present-day warming. The unchanged 280 ppm reference uses the original surfaces,
 wind, orbit and scattering. Its prescribed baseline is
 Tbase = 14 − 40(sin²(latitude) − 1/3) °C, averaging near 14°C.
+The small grid quadrature offset is removed so the prescribed annual global
+baseline is exactly 14°C. This value is an illustrative model reference, not a
+calibration to observed contemporary global temperature.
 
 Reference annual absorbed sunlight is estimated with 48 samples. The periodic
 seasonal state is solved analytically at startup, then integrated daily:
@@ -175,13 +178,24 @@ Cs dTseason/dt = ASRreference − annualMeanASRreference − λcentral Tseason
 A separate local single-layer anomaly supplies an approximate regional pattern,
 using prescribed capacities 2.1e8 J/m²/K over ocean/ice and 2e7 over land. Its
 area mean is removed and replaced by FaIR's central global surface anomaly.
-The regional map is not a spatial FaIR model or resolved circulation.
-Absolute temperature is the reference baseline plus seasonal temperature and
-this adjusted anomaly. Scenario global temperatures share the same reference.
+The **seasonal regional response is centred in the same way**: its area mean
+is removed, and a separate central three-layer FaIR response supplies the global
+reference season. Its forcing is areaMean(ASRreference) minus the reference
+annual mean. The 48 annual radiation samples also initialise this periodic
+three-layer state by solving `(I − Ayear) Tstart = byear`; no multi-year spin-up
+or retained per-cell history is needed. It then uses cached daily transitions.
+
+The global absolute temperature is exactly 14°C plus the global reference
+season and central CO₂/albedo response. The map, inspector and scalar tracker
+share that same mean. Scenario global temperatures share the same reference.
+The regional map is not a spatial FaIR model or resolved circulation; its simple
+local buckets can still exaggerate regional seasonal amplitudes.
 
 Main imbalance reports the change from the reference; total imbalance includes
 reference seasonal storage. Heat change is the exact change in reference seasonal
-heat plus the central FaIR layers' heat content, converted to ZJ. The trailing
+FaIR heat plus the central perturbation FaIR layers' heat content, converted to ZJ.
+Local reference fluxes use the centred seasonal pattern and global FaIR season,
+so their area mean agrees with the global reference imbalance. The trailing
 366-day mean uses integrated net fluxes. Monthly scalar history is capped at
 1,200 records; CSV exports use ECS-envelope labels and append the current state.
 No dynamic heat transport, ice feedback, interactive clouds or carbon cycle is
@@ -190,8 +204,8 @@ included. These assumptions are also visible in the app's “How it works” dia
 ## Lightweight implementation
 
 Numerical state occupies roughly 10 MiB at 100 km, excluding transient graph
-construction, browser overhead and render buffers. FaIR adds only nine thermal
-states and three small cached matrices. C45 inputs and BRDF coefficients are retained only for land cells; fractional ice and coastal flags
+construction, browser overhead and render buffers. FaIR adds only twelve thermal
+states and four small cached matrices. C45 inputs and BRDF coefficients are retained only for land cells; fractional ice and coastal flags
 are small per-cell arrays. Source data totals 2,251,152 bytes and is released after
 startup sampling and coefficient caching. No per-cell timestep history is retained.
 Five Float32 fields form each ~1 MiB transferable snapshot, returned to a small

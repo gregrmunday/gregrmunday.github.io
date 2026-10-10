@@ -21,6 +21,25 @@ arrays and cached coefficients keep NetCDF/Python/Julia out of the browser.
   changes to reference and experiment. This would extend the current request,
   which initialises and then prescribes surface inputs.
 - Add temperature-goal gameplay using the existing local albedo brushes.
+- Calibrate the absolute temperature baseline and regional seasonal amplitudes
+  against an appropriate air-temperature climatology; the current 14°C reference
+  and local bucket capacities remain illustrative.
+
+## Startup temperature correction
+
+The regional seasonal response previously contributed its uncentred area mean
+on top of the global FaIR CO₂ response. At 428 ppm on 10 October, this added
+2.34°C and produced 18.18°C at startup. Both regional seasonal and perturbation
+patterns now have their means removed. A separate central FaIR response supplies
+the global reference season, initialised periodically from the existing 48
+radiation samples. Global heat and seasonal net flux follow those thermal states.
+The same setup starts at 15.52°C, including −0.32°C reference season and +1.84°C
+equilibrium CO₂ warming above the prescribed 14°C annual baseline.
+
+A focused startup/first-three-day diagnosis showed unchanged CO₂ warming and
+agreement between the temperature map's area mean and the scalar tracker. A CO₂
+change left temperature continuous and produced a gradual thermal response.
+This brief bug investigation did not resume the cancelled offline drift study.
 
 ## Explicitly stopped
 

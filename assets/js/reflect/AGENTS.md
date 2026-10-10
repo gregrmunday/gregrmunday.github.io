@@ -71,6 +71,15 @@ value as a live feed, or the equilibrium initialisation as historical climate.
 The future albedo game should use
 this same model and keep its educational assumptions visible.
 
+Centre both regional seasonal temperatures and regional perturbations before
+adding their respective global FaIR responses. Different local land/ocean lags
+must not introduce an extra global seasonal temperature. The unchanged reference
+season uses a fourth, central FaIR response with a periodic initial state; its
+forcing is global reference ASR minus its annual mean. Global net flux and heat
+storage must use these global thermal states, not the uncentred local buckets.
+The prescribed annual 280 ppm baseline is exactly 14°C, and is not observational
+calibration. Keep the temperature map, inspector and tracker consistent.
+
 ## Geographic surface initialisation
 
 The pinned SpeedyWeatherAssets boundary binaries are now connected through

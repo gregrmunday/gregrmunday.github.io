@@ -30,6 +30,31 @@ export class FairResponse {
   this.transition=exponential(Float64Array.from(generator,x=>x*timestep));
  }
  equilibrate(forcing){this.temperature.fill(forcing/this.feedback);}
+ initializePeriodic(forcings){
+  // Compose one cycle T_end = A T_start + b, then solve (I - A) T_start = b.
+  // Uses the same exact transition as step(), without a multi-year spin-up.
+  const m=this.transition;let a=new Float64Array([1,0,0,0,1,0,0,0,1]),b=new Float64Array(3);
+  for(const forcing of forcings){
+   const nextA=new Float64Array(9),nextB=new Float64Array(3);
+   for(let i=0;i<3;i++){
+    nextB[i]=m[i*4+3]*forcing;
+    for(let k=0;k<3;k++){
+     nextB[i]+=m[i*4+k]*b[k];
+     for(let j=0;j<3;j++)nextA[i*3+j]+=m[i*4+k]*a[k*3+j];
+    }
+   }
+   a=nextA;b=nextB;
+  }
+  const rows=Array.from({length:3},(_,i)=>[(i===0?1:0)-a[i*3],(i===1?1:0)-a[i*3+1],(i===2?1:0)-a[i*3+2],b[i]]);
+  for(let j=0;j<3;j++){
+   let pivot=j;for(let i=j+1;i<3;i++)if(Math.abs(rows[i][j])>Math.abs(rows[pivot][j]))pivot=i;
+   [rows[j],rows[pivot]]=[rows[pivot],rows[j]];
+   const divisor=rows[j][j];if(Math.abs(divisor)<1e-14)throw new Error('Periodic thermal response is singular');
+   for(let k=j;k<4;k++)rows[j][k]/=divisor;
+   for(let i=0;i<3;i++)if(i!==j){const factor=rows[i][j];for(let k=j;k<4;k++)rows[i][k]-=factor*rows[j][k];}
+  }
+  for(let i=0;i<3;i++)this.temperature[i]=rows[i][3];
+ }
  step(forcing){
   const t=this.temperature,m=this.transition,x=t[0],y=t[1],z=t[2];
   t[0]=m[0]*x+m[1]*y+m[2]*z+m[3]*forcing;
