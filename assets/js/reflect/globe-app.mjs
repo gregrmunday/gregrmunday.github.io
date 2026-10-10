@@ -1,0 +1,121 @@
+import { sphericalGrid, cellAt, clamp, YEAR, RADIUS, TAU } from './globe-model.mjs';
+import { GlobeRenderer } from './globe-render.mjs';
+const $=id=>document.getElementById(id),canvas=$('planet'),renderer=new GlobeRenderer(canvas),names=['Ocean','Sea ice','Forest','Grass','Bare soil','Snow'];
+let worker=null,grid=null,fields=null,metrics=null,history=[],selected=-1,ready=false,running=false,busy=false,queuedDays=0,brush='rotate',view='surface',animation=0,lastTick=0,accumulator=0,configurationTimer=0,paintTime=0,drag=null,lastFrame=0;
+const signed=(x,digits=2)=>(x>=0?'+':'−')+Math.abs(x).toFixed(digits);
+function status(text){$('status').textContent=text;}
+function config(){return{spacing:Number($('resolution').value),seed:Number($('seed').value)||0,co2:Number($('co2').value),scatter:Number($('scatter').value)/100,width:Number($('width').value),eccentricity:Number($('eccentricity').value),tilt:Number($('tilt').value)};}
+function setOutputs(){
+ $('co2-value').textContent=`${$('co2').value} ppm`;$('scatter-value').textContent=`${$('scatter').value}%`;$('eccentricity-value').textContent=Number($('eccentricity').value).toFixed(4);$('tilt-value').textContent=Number($('tilt').value).toFixed(2)+'°';$('radius-value').textContent=$('radius').value+' km';
+}
+function initialize(restore=false){
+ pause();if(worker)worker.terminate();fields=null;metrics=null;history=[];selected=-1;ready=false;busy=false;queuedDays=0;accumulator=0;
+ if(restore){$('co2').value=280;$('scatter').value=30;$('width').value=120;$('eccentricity').value=.0167;$('tilt').value=23.44;setOutputs();}
+ $('run').disabled=true;$('run').textContent='Building…';$('step').disabled=true;$('export').disabled=true;$('stage-label').textContent='BUILDING YOUR PLANET';status('Calibrating the unchanged reference orbit…');
+ worker=new Worker(new URL('./globe-worker.mjs',import.meta.url),{type:'module'});
+ worker.onmessage=({data})=>{
+  if(data.type==='error'){pause();busy=false;ready=false;status(`Simulation paused: ${data.message}. Reset to retry.`);$('stage-label').textContent='SIMULATION PAUSED';return;}
+  if(data.type==='progress'){status(`Preparing reference climate · ${Math.round(data.progress*100)}%`);return;}
+  if(data.type==='grid'){grid=sphericalGrid(data.spacing);renderer.setGrid(grid,data.kinds);$('tile-hint').textContent=`${data.count.toLocaleString()} cells · ~${data.spacing} km`;return;}
+  if(data.type==='inspection'){showInspection(data.inspection);return;}
+  if(data.fields){
+   if(fields)worker.postMessage({type:'recycle',buffer:fields.buffer},[fields.buffer]);
+   fields=data.fields;metrics=data.metrics;history=data.history;renderer.update(fields,view);renderer.draw(metrics.orbital);updateUI();if(data.inspection)showInspection(data.inspection);
+  }
+  if(data.type==='ready'){
+   ready=true;$('run').disabled=false;$('run').textContent='▶ Run climate';$('step').disabled=false;$('export').disabled=false;$('stage-label').textContent='YOUR REFERENCE PLANET';
+   status('Ready. Raise CO₂, change the orbit, or paint the planet. Warming is measured against the unchanged reference.');
+  }
+  if(data.type==='advanced'){
+   busy=false;
+   if(queuedDays>0){const count=Math.min(8,queuedDays);queuedDays-=count;advance(count);status(`Integrating ${queuedDays} queued days…`);}
+   else if(!running){$('stage-label').textContent='CLIMATE PAUSED';status('Paused. Changes to the controls update radiation immediately; temperature evolves when you run.');}
+  }
+ };
+ worker.onerror=()=>{pause();busy=false;ready=false;status('The climate worker could not start. Reload or reset to retry.');};
+ worker.postMessage({type:'initialize',config:config()});
+}
+function configure(){setOutputs();clearTimeout(configurationTimer);configurationTimer=setTimeout(()=>{if(ready){worker.postMessage({type:'configure',config:config()});status('Updated the forcing. Run the climate to integrate the temperature response.');}},90);}
+function start(){if(!ready||running)return;running=true;lastTick=performance.now();accumulator=0;$('run').textContent='Ⅱ Pause';$('stage-label').textContent='FOLLOWING THE CLIMATE';$('live-dot').classList.add('running');status('Integrating daily energy and temperature. The sensitivity envelope evolves with the experiment.');animation=requestAnimationFrame(tick);}
+function pause(){running=false;cancelAnimationFrame(animation);$('live-dot').classList.remove('running');if(ready)$('run').textContent='▶ Run climate';}
+function advance(days){if(!ready||busy)return;busy=true;worker.postMessage({type:'advance',days});}
+function tick(now){
+ if(!running)return;accumulator=Math.min(16,accumulator+(now-lastTick)/1000*Number($('speed').value));lastTick=now;
+ if(!busy&&accumulator>=1){const days=Math.min(8,Math.floor(accumulator));accumulator-=days;advance(days);}
+ animation=requestAnimationFrame(tick);
+}
+function updateUI(){
+ if(!metrics)return;const m=metrics,month=Math.floor(m.orbital.day/YEAR*12),months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+ $('warming').firstChild.nodeValue=signed(m.warming);$('imbalance').firstChild.nodeValue=signed(m.perturbation);$('temperature').firstChild.nodeValue=m.temperature.toFixed(2);
+ $('absolute-range').textContent=`Scenarios: ${(m.temperature-m.warming+m.lower).toFixed(2)} to ${(m.temperature-m.warming+m.upper).toFixed(2)}°C`;
+ $('temperature-range').textContent=`ECS scenarios: ${signed(m.lower)} to ${signed(m.upper)}°C`;$('co2-forcing').textContent=`CO₂ forcing: ${signed(m.forcing)} W/m²`;$('stored-heat').textContent=`Heat change: ${signed(m.heat)} ZJ`;
+ $('time-label').textContent=`${(m.day/YEAR).toFixed(2)} model years`;$('season-label').textContent=`Year ${Math.floor(m.day/YEAR)+1} · ${months[month]}`;
+ $('distance').textContent=`${m.orbital.distance.toFixed(4)} AU`;$('declination').textContent=`${signed(m.orbital.declination*180/Math.PI,1)}° solar latitude`;
+ for(const name of ['incoming','reflected','outgoing']){$(name).textContent=m[name].toFixed(1);$(`${name}-bar`).style.width=`${clamp(m[name]/450)*100}%`;}
+ $('total-net').textContent=signed(m.imbalance,2);$('annual-net').textContent=m.annual===null?'After one year':signed(m.annual,2)+' W/m²';
+ drawOrbit();drawHistory();
+}
+function drawOrbit(){
+ const c=$('orbit'),ctx=c.getContext('2d'),w=c.width,h=c.height,e=Number($('eccentricity').value),a=w*.38,b=a*Math.sqrt(1-e*e),cx=w/2,cy=h/2;
+ ctx.clearRect(0,0,w,h);ctx.strokeStyle='#a6b698';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(cx,cy,a,b,0,0,TAU);ctx.stroke();
+ const sunX=cx-a*e;ctx.fillStyle='#bdad5a';ctx.beginPath();ctx.arc(sunX,cy,6,0,TAU);ctx.fill();
+ const E=metrics.orbital.anomaly,x=cx+a*Math.cos(E),y=cy-b*Math.sin(E);
+ ctx.strokeStyle='#b6bf9366';ctx.beginPath();ctx.moveTo(sunX,cy);ctx.lineTo(x,y);ctx.stroke();ctx.fillStyle='#327b68';ctx.beginPath();ctx.arc(x,y,5,0,TAU);ctx.fill();
+ ctx.fillStyle='#6c806d';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText('1 AU semi-major axis',cx,h-5);
+}
+function drawHistory(){
+ const canvas=$('history'),ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,pad=27;ctx.clearRect(0,0,w,h);if(!metrics)return;
+ const points=history.slice();if(!points.length||points.at(-1)[0]!==metrics.day)points.push([metrics.day,metrics.warming,metrics.lower,metrics.upper]);
+ let min=-.1,max=.1;for(const p of points){min=Math.min(min,p[2]);max=Math.max(max,p[3]);}const range=max-min;min-=range*.12;max+=range*.12;
+ const start=points[0][0],end=Math.max(start+30,metrics.day),x=day=>pad+(day-start)/(end-start)*(w-pad-8),y=t=>h-21-(t-min)/(max-min)*(h-33);
+ ctx.strokeStyle='#c8d2be';ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(pad,y(0));ctx.lineTo(w-8,y(0));ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#96af6850';ctx.beginPath();for(let j=0;j<points.length;j++)j?ctx.lineTo(x(points[j][0]),y(points[j][3])):ctx.moveTo(x(points[j][0]),y(points[j][3]));for(let j=points.length-1;j>=0;j--)ctx.lineTo(x(points[j][0]),y(points[j][2]));ctx.closePath();ctx.fill();
+ ctx.strokeStyle='#347860';ctx.lineWidth=2;ctx.beginPath();for(let j=0;j<points.length;j++)j?ctx.lineTo(x(points[j][0]),y(points[j][1])):ctx.moveTo(x(points[j][0]),y(points[j][1]));ctx.stroke();
+ ctx.fillStyle='#627361';ctx.font='10px system-ui';ctx.textAlign='left';ctx.fillText(`${max.toFixed(1)}°`,0,12);ctx.fillText(`${min.toFixed(1)}°`,0,h-21);ctx.fillText(`${(start/YEAR).toFixed(1)} y`,pad,h-4);ctx.textAlign='right';ctx.fillText(`${(metrics.day/YEAR).toFixed(1)} years`,w-8,h-4);
+}
+function showInspection(tile){
+ if(!tile)return;selected=tile.index;$('inspect-lat').value=tile.latitude.toFixed(2);$('inspect-lon').value=tile.longitude.toFixed(2);
+ $('inspector-summary').textContent=`${names[tile.kind]} · ${tile.latitude.toFixed(2)}° latitude, ${tile.longitude.toFixed(2)}° longitude · ${Math.round(tile.area).toLocaleString()} km²`;
+ const list=$('tile-summary');list.replaceChildren();
+ for(const [label,value] of [['Temperature',tile.temperature.toFixed(2)+'°C'],['Incoming light',tile.incoming.toFixed(1)+' W/m²'],['Current albedo',tile.albedo.toFixed(3)],['Diffuse fraction',(tile.diffuse*100).toFixed(1)+'%'],['Net flux',signed(tile.net)+' W/m²']]){const div=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;div.append(dt,dd);list.append(div);}
+ $('tile-albedo').disabled=false;$('tile-scatter').disabled=false;$('restore-tile').disabled=false;
+ if(document.activeElement!==$('tile-albedo'))$('tile-albedo').value=tile.override===null?'':tile.override.toFixed(3);
+ if(document.activeElement!==$('tile-scatter'))$('tile-scatter').value=tile.factor.toFixed(3);
+ renderer.selection={latitude:tile.latitude*Math.PI/180,longitude:tile.longitude*Math.PI/180,radius:Number($('radius').value)*1000/RADIUS};renderer.draw(metrics?.orbital);
+}
+function inspect(location,open=true){if(!ready||!location)return;selected=cellAt(grid,location.latitude,location.longitude);worker.postMessage({type:'inspect',index:selected});if(open&&!$('inspector').open)$('inspector').showModal();}
+function paint(location){if(!ready||!location)return;worker.postMessage({type:'edit',edit:{...location,radius:Number($('radius').value),mode:brush}});status('Painted a Gaussian patch. The climate and its history continue from the current state.');}
+function draw(){if(metrics)renderer.draw(metrics.orbital);}
+$('run').addEventListener('click',()=>{if(running){pause();status('Paused. Change a forcing or inspect a tile.');}else start();});
+$('step').addEventListener('click',()=>{if(!ready)return;pause();queuedDays+=30;const days=Math.min(8,queuedDays);if(!busy){queuedDays-=days;advance(days);}});
+$('generate').addEventListener('click',()=>initialize());$('reset').addEventListener('click',()=>initialize(true));
+['co2','scatter','eccentricity','tilt'].forEach(id=>$(id).addEventListener('input',configure));$('width').addEventListener('change',configure);
+$('radius').addEventListener('input',()=>{setOutputs();if(renderer.selection)renderer.selection.radius=Number($('radius').value)*1000/RADIUS;draw();});
+$('earth-orbit').addEventListener('click',()=>{$('eccentricity').value=.0167;$('tilt').value=23.44;configure();});
+$('co2').addEventListener('change',configure);document.querySelectorAll('[data-co2]').forEach(button=>button.addEventListener('click',()=>{$('co2').value=button.dataset.co2;configure();}));
+$('brushes').addEventListener('click',event=>{const button=event.target.closest('[data-brush]');if(!button)return;brush=button.dataset.brush;document.querySelectorAll('[data-brush]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));canvas.style.cursor=brush==='rotate'?'grab':'crosshair';});
+for(const button of document.querySelectorAll('[data-view]'))button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));$('map-legend').textContent={surface:'Illustrative continents · drag to turn',temperature:'Temperature · blue −35 / cream 2.5 / red 40°C',warming:'Warming vs reference · blue cooling / red warming (±5°C)',albedo:'Albedo · dark 0 / bright 1',scattering:'Diffuse fraction · dark 0 / bright 1',imbalance:'Net flux · blue cooling / red warming (±100 W/m²)'}[view];if(fields)renderer.update(fields,view);draw();});
+canvas.addEventListener('pointerdown',event=>{if(event.button!==0||!ready)return;canvas.setPointerCapture(event.pointerId);drag={x:event.clientX,y:event.clientY,yaw:renderer.yaw,pitch:renderer.pitch};const location=renderer.coordinates(event);if(brush==='inspect')inspect(location);else if(brush!=='rotate')paint(location);});
+canvas.addEventListener('pointermove',event=>{
+ if(!ready)return;const now=performance.now();if(!drag){if(brush!=='rotate'&&now-lastFrame>40){const p=renderer.coordinates(event);renderer.selection=p?{...p,radius:Number($('radius').value)*1000/RADIUS}:null;draw();lastFrame=now;}return;}
+ if(brush==='rotate'){renderer.yaw=drag.yaw-(event.clientX-drag.x)*.007;renderer.pitch=clamp(drag.pitch+(event.clientY-drag.y)*.007,-1.45,1.45);draw();}
+ else if(brush!=='inspect'&&now-paintTime>100){paint(renderer.coordinates(event));paintTime=now;}
+});
+function endDrag(){drag=null;}canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);canvas.addEventListener('pointerleave',()=>{if(!drag){renderer.selection=null;draw();}});
+canvas.addEventListener('wheel',event=>{event.preventDefault();renderer.zoom=clamp(renderer.zoom*Math.exp(-event.deltaY*.001),.65,2.5);draw();},{passive:false});
+canvas.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','Enter'].includes(event.key))return;event.preventDefault();if(event.key==='ArrowLeft')renderer.yaw-=.08;if(event.key==='ArrowRight')renderer.yaw+=.08;if(event.key==='ArrowUp')renderer.pitch=clamp(renderer.pitch+.08,-1.45,1.45);if(event.key==='ArrowDown')renderer.pitch=clamp(renderer.pitch-.08,-1.45,1.45);if(event.key==='+'||event.key==='=')renderer.zoom=clamp(renderer.zoom*1.1,.65,2.5);if(event.key==='-')renderer.zoom=clamp(renderer.zoom/1.1,.65,2.5);if(event.key==='Enter')inspect({latitude:renderer.pitch,longitude:renderer.yaw});draw();});
+$('zoom-in').addEventListener('click',()=>{renderer.zoom=clamp(renderer.zoom*1.15,.65,2.5);draw();});$('zoom-out').addEventListener('click',()=>{renderer.zoom=clamp(renderer.zoom/1.15,.65,2.5);draw();});$('home-view').addEventListener('click',()=>{renderer.yaw=-.45;renderer.pitch=.18;renderer.zoom=1;draw();});
+$('inspector-link').addEventListener('click',()=>{if(selected<0)inspect({latitude:0,longitude:0});else $('inspector').showModal();});$('science-link').addEventListener('click',()=>$('science').showModal());document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).close()));
+$('inspect-coordinate').addEventListener('click',()=>{if(!$('inspect-lat').checkValidity()||!$('inspect-lon').checkValidity())return;inspect({latitude:Number($('inspect-lat').value)*Math.PI/180,longitude:Number($('inspect-lon').value)*Math.PI/180},false);});
+$('tile-albedo').addEventListener('change',()=>{if(selected<0)return;const input=$('tile-albedo');if(input.value===''){worker.postMessage({type:'edit',edit:{mode:'albedo',index:selected,value:NaN}});}else if(input.checkValidity())worker.postMessage({type:'edit',edit:{mode:'albedo',index:selected,value:input.valueAsNumber}});});
+$('tile-scatter').addEventListener('change',()=>{if(selected<0||!$('tile-scatter').checkValidity())return;worker.postMessage({type:'edit',edit:{mode:'scatter',index:selected,value:$('tile-scatter').valueAsNumber}});});$('restore-tile').addEventListener('click',()=>{if(selected>=0)worker.postMessage({type:'edit',edit:{mode:'restore',index:selected}});});
+$('export').addEventListener('click',()=>{
+ if(!metrics)return;const rows=['model_day,warming_c,ecs_envelope_lower_c,ecs_envelope_upper_c,imbalance_change_w_m2,total_imbalance_w_m2,stored_heat_zj'];
+ const records=history.slice();if(records.at(-1)?.[0]!==metrics.day)records.push([metrics.day,metrics.warming,metrics.lower,metrics.upper,metrics.perturbation,metrics.imbalance,metrics.heat]);
+ for(const row of records)rows.push(row.map(value=>Number(value).toFixed(6)).join(','));
+ const url=URL.createObjectURL(new Blob([rows.join('\n')+'\n'],{type:'text/csv'})),link=document.createElement('a');link.href=url;link.download='reflect-climate-history.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+new ResizeObserver(()=>{renderer.resize();draw();}).observe(canvas);
+canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();pause();ready=false;status('Graphics context lost. Reload this page to restore the globe.');});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){pause();status('Paused while this page is hidden. Resume when you are ready.');}});
+window.addEventListener('pagehide',()=>{pause();worker?.terminate();});setOutputs();renderer.resize();initialize();
