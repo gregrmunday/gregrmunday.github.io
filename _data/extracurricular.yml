@@ -5,6 +5,10 @@ activities:
   - title: Surfing
     description: >-
       Lifelong pursuit of getting tubed.
+    # Edit the text on the reverse of the Surfing card here.
+    flip_title: Qualified beach lifeguard
+    flip_description: >-
+      I'm a qualified beach lifeguard.
     photos:
       - image: /images/extracurricular/surf.JPG
 

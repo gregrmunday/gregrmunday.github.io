@@ -49,6 +49,12 @@ The starter cards contain no photographs; add your own when ready.
 An activity with a `url` makes its entire card clickable; `link_label` provides
 the visible link text and keyboard access. The Music card links to Spotify.
 
+The Surfing card flips on hover, or with a tap or Enter/Space. Edit its
+`flip_title` and `flip_description` in `_data/extracurricular.yml` to change the
+lifeguard text on the back. Use `flip_description: |` for multiple paragraphs.
+The animation respects reduced motion preferences. With JavaScript disabled,
+both sides are shown as ordinary content.
+
 ## Layout and compact lists
 
 `_pages/about.md` defines the section order. `_layouts/onepage.html` creates the

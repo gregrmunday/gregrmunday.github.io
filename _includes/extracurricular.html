@@ -1,6 +1,7 @@
 <div class="activity-grid">
   {% for activity in site.data.extracurricular.activities %}
-  <article class="activity-card">
+  <article class="activity-card{% if activity.flip_description %} activity-card--flip{% endif %}">
+    {% if activity.flip_description %}<div class="activity-card__inner"><div class="activity-card__front">{% endif %}
     {% if activity.photos.size > 0 %}
     <div class="activity-card__photos">
       {% for photo in activity.photos %}
@@ -17,6 +18,15 @@
       <p>{{ activity.description | escape }}</p>
       {% if activity.url %}<a class="activity-card__link" href="{{ activity.url | escape }}">{{ activity.link_label | default: 'More' | escape }} <span aria-hidden="true">↗</span></a>{% endif %}
     </div>
+    {% if activity.flip_description %}
+    </div>
+    <div class="activity-card__back activity-card__body" id="activity-back-{{ forloop.index }}">
+      <span class="activity-card__eyebrow">{{ activity.title | escape }}</span>
+      <h3>{{ activity.flip_title | default: activity.title | escape }}</h3>
+      <p>{{ activity.flip_description | escape }}</p>
+    </div>
+    </div>
+    {% endif %}
   </article>
   {% endfor %}
 </div>
