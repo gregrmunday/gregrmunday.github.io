@@ -12,8 +12,6 @@ summary: >-
   Developing hybrid physics and AI approaches for atmospheric models,
   alongside climate and sea-level emulators.
 email: gregory.munday@keble.ox.ac.uk
-# Leave blank or delete to use email-only contact.
-phone: "+44 7367 585154"
 # For a PDF download, add the file to files/ and set /files/your-cv.pdf here.
 pdf_url: ""
 
