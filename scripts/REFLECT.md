@@ -53,7 +53,9 @@ is created by interpolation. Polar queries clamp to the nearest source latitude.
 
 At startup, the current and next month are interpolated using the fraction of
 calendar days elapsed since the first of the month, matching SpeedyWeather's
-initialisation convention. These input fields stay fixed through the experiment.
+initialisation convention. These input fields stay fixed through the experiment
+unless the user explicitly paints or edits the land inputs. The original maps
+and reference coefficients always remain unchanged.
 Surface colours are derived from dominant vegetation and snow/ice cover; ocean
 colours blend continuously with the sourced fractional sea ice. The seed only
 changes the illustrative atmospheric scattering pattern, not geographic inputs.
@@ -71,6 +73,63 @@ with `python scripts/build_reflect_boundary_conditions.py /path/to/netcdf/files`
 using NumPy and netCDF4 in an isolated offline conversion environment. The browser
 loads native binary arrays with no NetCDF/Julia/Python dependency. Data attribution
 is bundled: SpeedyWeatherAssets EUPL-1.2 and ECMWF ERA5 vegetation CC BY 4.0.
+
+## Surface drawing and vegetation experiments
+
+“04 Paint a response” now paints physical land inputs rather than only prescribed
+albedo. Choose a brush, select **Draw surface**, and drag on the globe. Changing
+the brush dropdown selects drawing automatically. **Focus Amazon** centres
+5°S, 62°W and holds the globe's decorative rotation while drawing. Physics can
+continue integrating; pausing lets users compare radiation at the same season.
+
+The spherical brush has a truncated Gaussian weight, strongest at its centre and
+zero at its radius. It respects the original land/ocean mask and longitude seam.
+It visits only intersecting latitude rows and evaluates the angular distance
+only for candidates inside the circle.
+
+| Brush | Physical edit at full centre weight |
+| --- | --- |
+| Low vegetation | Transfer high cover to low, preserving total cover; high LAI → 0, low LAI → 2 m²/m² |
+| High vegetation | Transfer low cover to high, preserving total cover; low LAI → 0, high LAI → 5 m²/m² |
+| Bare ground | High/low cover and both LAIs → 0 |
+| Add snow | Snow depth → at least 0.15 m water equivalent |
+| Raise/lower terrain | Elevation ±100 m, bounded to 0–9000 m |
+
+Targets are blended by Gaussian weight, so repeated strokes approach the preset.
+Elevation increments accumulate. Vegetation conversion needs existing cover;
+planting on a bare tile is possible by setting its cover in **Tile inputs**.
+The LAI targets are illustrative brush presets, not sourced observations.
+Snow, soil moisture and temperature are preserved by the vegetation brushes.
+Elevation changes C45's physical elevation input; the displayed sphere is not
+deformed and there is no spherical terrain-shadow model.
+
+**Amazon example:** choose Low vegetation, click Focus Amazon and draw over the
+forest. Watch **Sunlight forcing** for the area-weighted change in absorbed
+radiation, and run the climate to follow FaIR's temperature response. Inspect a
+tile to compare its current and original high/low cover, current C45 albedo and
+local absorbed-sunlight change. This is the albedo contribution to a land-cover
+experiment; it excludes carbon release, evapotranspiration and ecosystem feedbacks.
+
+The tile dialog also edits high/low cover, leaf area, elevation and snow exactly.
+Cover must total at most 100%; ocean tiles disable this form. Unsaved form values
+survive running climate snapshots. Applying physical surface inputs clears a
+manual albedo override for that land tile so learned C45 actually supplies the
+new reflection. Direct albedo and scattering brushes remain in the dropdown.
+
+Each changed land tile recalculates only its cached C45 broadband BRDF
+coefficients and visual classification. The worker retains bounded copies of
+the original Float32 land inputs and Float64 coefficients for reference radiation
+and restoration, adding about 1 MiB at 100 km. It transfers a new ~50 KiB
+classification array only when surface inputs change. Surface textures are
+invalidated on these edits, with no re-upload during ordinary display rotation.
+Drawing keeps one brush edit in flight and coalesces additional pointer samples
+to the newest pending position; it does not create an unbounded worker queue.
+
+**Restore tiles** restores the original land inputs, learned coefficients,
+classification, albedo scheme and scattering in the patch. Edits and restoration
+recalculate radiation immediately, preserving thermal states, integrated heat,
+time and bounded climate history. The reference annual and seasonal climate
+are never recalibrated to follow an edited surface.
 
 ## Orbit, daily radiation and ocean reflection
 
@@ -203,7 +262,7 @@ included. These assumptions are also visible in the app's “How it works” dia
 
 ## Lightweight implementation
 
-Numerical state occupies roughly 10 MiB at 100 km, excluding transient graph
+Numerical state occupies roughly 11 MiB at 100 km, excluding transient graph
 construction, browser overhead and render buffers. FaIR adds only twelve thermal
 states and four small cached matrices. C45 inputs and BRDF coefficients are retained only for land cells; fractional ice and coastal flags
 are small per-cell arrays. Source data totals 2,251,152 bytes and is released after

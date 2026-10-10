@@ -10,6 +10,7 @@ export const BASE_TEMPERATURE=14; // Prescribed 280 ppm annual mean, not an obse
 export const DEFAULTS={co2:280,eccentricity:.0167,tilt:23.44,scatter:.3,width:120,wind:5};
 export const forcing=co2=>5.35*Math.log(co2/280);
 const mod=(x,n)=>(x%n+n)%n;
+const LAND_MODES=new Set(['low-vegetation','high-vegetation','bare-ground','snow-cover','raise-terrain','lower-terrain','land-inputs','restore']);
 export function orbit(day,config=DEFAULTS) {
   const e=config.eccentricity,mean=TAU*(day-2)/YEAR;let anomaly=mean;
   for(let j=0;j<8;j++)anomaly-=(anomaly-e*Math.sin(anomaly)-mean)/(1-e*Math.cos(anomaly));
@@ -100,6 +101,7 @@ export class Planet {
     this.override=new Float32Array(n).fill(NaN);this.capacity=new Float64Array(n);this.referenceT=new Float32Array(n);
     this.localAnomaly=new Float64Array(n);this.localMean=0;this.seasonalT=new Float64Array(n);this.baselineAnnual=new Float64Array(n);
     this.referenceMean=0;this.seasonalMean=0;this.baselineAnnualMean=0;this.referenceResponse=new FairResponse(3,DOUBLING);
+    this.surfaceRevision=0;this.lastEdit=null;
     this.absorbed=new Float64Array(n);this.referenceAbsorbed=new Float64Array(n);this.direct=new Float64Array(n);this.diffuse=new Float64Array(n);this.scratch=new Float64Array(n);
     this.albedo=new Float32Array(n);this.fraction=new Float32Array(n);this.net=new Float32Array(n);this.incoming=new Float32Array(n);
     this.sunRow=new Float64Array(this.grid.rows);this.volRow=new Float64Array(this.grid.rows);this.geoRow=new Float64Array(this.grid.rows);this.oceanRow=new Float64Array(this.grid.rows);
@@ -116,13 +118,37 @@ export class Planet {
         this.kinds[i]=this.ice[i]>=.15?1:0;continue;
       }
       boundary.landInputs(lat,lon,month,fraction,input);this.boundaryFlags[i]=boundary.flags;
-      const snowCover=input[9]/(input[9]+.05);
-      this.kinds[i]=snowCover>=.5?5:Math.max(input[0],input[1])<.15?4:input[0]>=input[1]?2:3;
       const offset=this.landSlots[i]*11;this.landInputs.set(input,offset);
-      // Use the retained Float32 inputs so inspection shows precisely what C45 saw.
-      const p=brdf(this.landInputs.subarray(offset,offset+11));
-      for(let k=0;k<3;k++)this.coefficients[this.landSlots[i]*3+k]=.5395*p[k]+.4689*p[k+3];
+      this.refreshLand(i);
     }
+    // Bounded copies for the unchanged reference and exact surface restoration.
+    // The radiation reference must never follow the user's vegetation edits.
+    this.baseLandInputs=this.landInputs.slice();this.referenceCoefficients=this.coefficients.slice();
+  }
+  refreshLand(index) {
+    const slot=this.landSlots[index],p=this.landInputs.subarray(slot*11,slot*11+11),coefficients=brdf(p);
+    this.kinds[index]=p[9]/(p[9]+.05)>=.5?5:Math.max(p[0],p[1])<.15?4:p[0]>=p[1]?2:3;
+    for(let k=0;k<3;k++)this.coefficients[slot*3+k]=.5395*coefficients[k]+.4689*coefficients[k+3];
+  }
+  editLand(index,mode,weight=1,value) {
+    if(!LAND_MODES.has(mode))return false;
+    const slot=this.landSlots[index];if(slot<0)return false;
+    const offset=slot*11,p=this.landInputs.subarray(offset,offset+11),total=p[0]+p[1];
+    const high=p[0],low=p[1],height=p[6],highLai=p[7],lowLai=p[8],snow=p[9];
+    if(mode==='low-vegetation'&&total>0){
+      p[0]*=1-weight;p[1]=total-p[0];p[7]*=1-weight;p[8]+=(2-p[8])*weight;
+    }else if(mode==='high-vegetation'&&total>0){
+      p[1]*=1-weight;p[0]=total-p[1];p[8]*=1-weight;p[7]+=(5-p[7])*weight;
+    }else if(mode==='bare-ground'){
+      p[0]*=1-weight;p[1]*=1-weight;p[7]*=1-weight;p[8]*=1-weight;
+    }else if(mode==='snow-cover')p[9]+=(Math.max(p[9],.15)-p[9])*weight;
+    else if(mode==='raise-terrain'||mode==='lower-terrain')p[6]=clamp(p[6]+(mode==='raise-terrain'?100:-100)*weight,0,9000);
+    else if(mode==='land-inputs'){
+      p[0]=value.high;p[1]=value.low;p[6]=value.height;p[7]=value.highLai;p[8]=value.lowLai;p[9]=value.snow;
+    }else if(mode==='restore')this.landInputs.set(this.baseLandInputs.subarray(offset,offset+11),offset);
+    const changed=high!==p[0]||low!==p[1]||height!==p[6]||highLai!==p[7]||lowLai!==p[8]||snow!==p[9];
+    if(changed){this.refreshLand(index);this.surfaceRevision++;}
+    return changed;
   }
 
   shortwave(day,config,reference=false,target=this.absorbed) {
@@ -137,7 +163,7 @@ export class Planet {
       const row=grid.rowOf[i],slot=this.landSlots[i];let black,white;
       if(slot<0){const ice=this.ice[i];black=(1-ice)*this.oceanRow[row]+ice*.6;white=(1-ice)*oceanWhite+ice*.6;}
       else{
-        const offset=slot*3,iso=this.coefficients[offset],v=this.coefficients[offset+1],g=this.coefficients[offset+2];
+        const coefficients=reference?this.referenceCoefficients:this.coefficients,offset=slot*3,iso=coefficients[offset],v=coefficients[offset+1],g=coefficients[offset+2];
         black=clamp(iso+this.volRow[row]*v+this.geoRow[row]*g);white=clamp(iso+.189184*v-1.377622*g);
       }
       if(!reference&&Number.isFinite(this.override[i]))black=white=this.override[i];
@@ -221,25 +247,49 @@ export class Planet {
     if(this.elapsed%30===0){const m=this.metrics;this.history.push([m.day,m.warming,m.lower,m.upper,m.perturbation,m.imbalance,m.heat]);if(this.history.length>1200)this.history.shift();}
   }
   edit({latitude,longitude,radius=350,mode,value,index}) {
+    if(mode==='land-inputs'){
+      const limits={high:1,low:1,height:9000,highLai:15,lowLai:15,snow:10};
+      if(!value||Object.entries(limits).some(([key,max])=>!Number.isFinite(value[key])||value[key]<0||value[key]>max)||value.high+value.low>1+1e-7)throw new Error('Invalid land inputs: cover must total at most 100%');
+      if(!Number.isInteger(index)||index<0||index>=this.grid.count||this.landSlots[index]<0)throw new Error('Select a land tile to edit surface inputs');
+    }
+    let changedCells=0,area=0;
     if(Number.isInteger(index)&&index>=0&&index<this.grid.count){
       if(mode==='albedo')this.override[index]=clamp(value);else if(mode==='scatter')this.scatterFactor[index]=clamp(value,0,3);else if(mode==='restore'){this.override[index]=NaN;this.scatterFactor[index]=this.baseScatter[index];}
+      if(this.editLand(index,mode,1,value)){
+        changedCells++;area+=this.grid.area[index];
+      }
+      // Physical surface edits should use C45, even after an albedo override.
+      if(LAND_MODES.has(mode)&&this.landSlots[index]>=0)this.override[index]=NaN;
     }else{
-      const limit=radius*1000/RADIUS,edge=Math.exp(-4.5),s=Math.sin(latitude),c=Math.cos(latitude);
-      for(let i=0;i<this.grid.count;i++){
-        const distance=Math.acos(clamp(s*Math.sin(this.grid.latitude[i])+c*Math.cos(this.grid.latitude[i])*Math.cos(this.grid.longitude[i]-longitude),-1,1));
-        if(distance>=limit)continue;const weight=(Math.exp(-4.5*(distance/limit)**2)-edge)/(1-edge);
-        if(mode==='brighten'||mode==='darken'){const a=Number.isFinite(this.override[i])?this.override[i]:this.albedo[i];this.override[i]=clamp(a+(mode==='brighten'?1:-1)*.08*weight);}
-        else if(mode==='scatter')this.scatterFactor[i]=clamp(this.scatterFactor[i]+.2*weight,0,3);
-        else if(mode==='clear')this.scatterFactor[i]=clamp(this.scatterFactor[i]-.2*weight,0,3);
-        else if(mode==='restore'){this.override[i]=NaN;this.scatterFactor[i]=this.baseScatter[i];}
+      if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||!Number.isFinite(radius)||radius<=0)return;
+      const limit=Math.min(Math.PI,radius*1000/RADIUS),cosLimit=Math.cos(limit),edge=Math.exp(-4.5),s=Math.sin(latitude),c=Math.cos(latitude),grid=this.grid;
+      const first=clamp(Math.floor((latitude-limit+Math.PI/2)/grid.dphi),0,grid.rows-1),last=clamp(Math.floor((latitude+limit+Math.PI/2)/grid.dphi),0,grid.rows-1),landOnly=LAND_MODES.has(mode)&&mode!=='restore';
+      // Visit only intersecting latitude rows; longitude distance still wraps
+      // naturally across the seam and over the poles. Avoid acos outside the brush.
+      for(let row=first;row<=last;row++){
+        const rowLat=grid.latitude[grid.offsets[row]],sr=Math.sin(rowLat),cr=Math.cos(rowLat);
+        for(let i=grid.offsets[row];i<grid.offsets[row+1];i++){
+          if(landOnly&&this.landSlots[i]<0)continue;
+          const cosine=clamp(s*sr+c*cr*Math.cos(grid.longitude[i]-longitude),-1,1);if(cosine<=cosLimit)continue;
+          const distance=Math.acos(cosine),weight=(Math.exp(-4.5*(distance/limit)**2)-edge)/(1-edge);
+          if(mode==='brighten'||mode==='darken'){const a=Number.isFinite(this.override[i])?this.override[i]:this.albedo[i];this.override[i]=clamp(a+(mode==='brighten'?1:-1)*.08*weight);}
+          else if(mode==='scatter')this.scatterFactor[i]=clamp(this.scatterFactor[i]+.2*weight,0,3);
+          else if(mode==='clear')this.scatterFactor[i]=clamp(this.scatterFactor[i]-.2*weight,0,3);
+          else if(mode==='restore'){this.override[i]=NaN;this.scatterFactor[i]=this.baseScatter[i];}
+          if(this.editLand(i,mode,weight)){
+            changedCells++;area+=this.grid.area[i];
+          }
+          if(LAND_MODES.has(mode)&&this.landSlots[i]>=0)this.override[i]=NaN;
+        }
       }
     }
+    this.lastEdit={mode,changedCells,area:area*RADIUS*RADIUS/1e6};
     this.diagnose();
   }
   inspect(index) {
     if(index<0||index>=this.grid.count)return null;
     const offset=this.landSlots[index]*11;
-    return {inputs:offset>=0?Array.from(this.landInputs.subarray(offset,offset+11)):null,ice:this.ice[index],boundaryFlags:this.boundaryFlags[index],boundary:this.boundaryInfo,index,latitude:this.grid.latitude[index]*180/Math.PI,longitude:this.grid.longitude[index]*180/Math.PI,kind:this.kinds[index],area:this.grid.area[index]*RADIUS*RADIUS/1e6,
+    return {inputs:offset>=0?Array.from(this.landInputs.subarray(offset,offset+11)):null,referenceInputs:offset>=0?Array.from(this.baseLandInputs.subarray(offset,offset+11)):null,shortwaveChange:this.absorbed[index]-this.referenceAbsorbed[index],ice:this.ice[index],boundaryFlags:this.boundaryFlags[index],boundary:this.boundaryInfo,index,latitude:this.grid.latitude[index]*180/Math.PI,longitude:this.grid.longitude[index]*180/Math.PI,kind:this.kinds[index],area:this.grid.area[index]*RADIUS*RADIUS/1e6,
       albedo:this.albedo[index],override:Number.isFinite(this.override[index])?this.override[index]:null,factor:this.scatterFactor[index],diffuse:this.fraction[index],temperature:this.temperatureAt(index),incoming:this.incoming[index],net:this.net[index]};
   }
   frame(target=new Float32Array(this.grid.count*5)) {

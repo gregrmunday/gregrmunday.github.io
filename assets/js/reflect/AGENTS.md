@@ -90,9 +90,26 @@ snow mass-to-water-depth conversion, monthly missing masks, nonuniform latitudes
 longitude wrap and explicitly documented soil/air-temperature proxies.
 
 Sample climatologies for the startup date and hold the physical input fields
-fixed. An evolving monthly climatology would require matching changes in both
+fixed unless the user explicitly paints or edits them. An evolving monthly climatology would require matching changes in both
 reference and experiment. Retain C45 inputs only for land cells and release the
 source buffers after caching. Surface classification is visual; fractional sea ice
 must remain continuous in the Jin radiation mixture.
+
+## Physical surface brushes
+
+The planet's “04 Paint a response” panel edits land cover, leaf area, elevation
+and snow as C45 inputs. Original Float32 inputs and reference BRDF coefficients
+are separate bounded arrays; never modify them when painting. Recompute C45
+only for changed land tiles, clear manual albedo overrides in physical brush
+footprints, and restore original inputs and coefficients without resetting
+climate history. Vegetation conversion preserves total cover; LAI targets are
+explicit illustrative presets. No carbon release or ecosystem feedback is implied.
+
+Visit only brush-intersecting latitude rows, handle spherical seams and poles,
+and use a bounded Gaussian footprint. Coalesce pointer samples with one paint
+request in flight. Transfer visual classifications only on surface changes and
+invalidate the cached surface texture then; ordinary rotation remains cached.
+Preserve unsaved tile-editor values during climate snapshots. Enforce cover
+totals at most one and keep ocean tiles out of the land editor.
 
 The user stopped offline simulations; do not resume them without a new request.

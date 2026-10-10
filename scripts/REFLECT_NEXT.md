@@ -25,6 +25,23 @@ arrays and cached coefficients keep NetCDF/Python/Julia out of the browser.
   against an appropriate air-temperature climatology; the current 14°C reference
   and local bucket capacities remain illustrative.
 
+## Surface painting completed
+
+“04 Paint a response” includes high/low vegetation conversion, bare ground,
+snow and Gaussian elevation brushes, retaining direct albedo/scattering tools.
+Focus Amazon makes the forest experiment easy to reach. The tile dialog exposes
+cover, leaf area, elevation and snow, with cover-total validation and protection
+for unsaved form values while the simulation runs.
+
+Painting recalculates learned C45 only for changed land tiles. Original land
+inputs and reference coefficients remain immutable; restoration returns them
+without changing thermal history. The globe updates its surface colours when
+classification changes. The global sunlight-forcing readout and local inspector
+show the absorbed-radiation difference immediately. See `REFLECT.md` for preset
+LAI values and the albedo-only scope of these vegetation experiments.
+Jekyll build, module syntax and whitespace checks passed for this update. No
+runtime/browser exercise or offline control-simulation study was run.
+
 ## Startup temperature correction
 
 The regional seasonal response previously contributed its uncentred area mean

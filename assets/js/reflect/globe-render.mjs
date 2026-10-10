@@ -56,7 +56,7 @@ export class GlobeRenderer {
   }
   update(fields,mode=this.mode) {
     this.fields=fields;this.mode=mode;if(!this.grid)return;
-    // Surface colours are static: rotation never needs another texture upload.
+    // Surface colours change only on painting: rotation needs no texture upload.
     if(mode==='surface'&&this.colorMode===mode)return;this.colorMode=mode;
     const color=[0,0,0];
     for(let i=0;i<this.grid.count;i++){
@@ -71,6 +71,9 @@ export class GlobeRenderer {
     }
     for(let p=0;p<this.lookup.length;p++){const from=this.lookup[p]*4,to=p*4;this.pixels[to]=this.cellColors[from];this.pixels[to+1]=this.cellColors[from+1];this.pixels[to+2]=this.cellColors[from+2];this.pixels[to+3]=this.cellColors[from+3];}
     if(this.gl){const gl=this.gl;gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,this.textureWidth,this.textureHeight,gl.RGBA,gl.UNSIGNED_BYTE,this.pixels);}
+  }
+  setKinds(kinds) {
+    this.kinds.set(kinds);this.colorMode=null;
   }
   resize() {
     const {width,height}=this.canvas.getBoundingClientRect(),ratio=Math.min(devicePixelRatio||1,1.5,Math.sqrt(1200000/(width*height)));
