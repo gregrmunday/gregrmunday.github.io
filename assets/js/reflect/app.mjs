@@ -1,7 +1,6 @@
-import { STRIDE, FIELDS, clamp } from './model.mjs';
+import { STRIDE, FIELDS, clamp, createFrame, evaluateFrame } from './model.mjs';
 const $ = id => document.getElementById(id);
 const canvas = $('world'), ctx = canvas.getContext('2d');
-const chart = $('chart'), chartCtx = chart.getContext('2d');
 const palette = [[65,139,162],[190,223,225],[57,106,82],[158,174,104],[186,151,106],[230,235,226]];
 const names = ['Ocean','Sea ice','Forest','Grass','Bare soil','Snow'];
 const brushKinds = {ocean:0,ice:1,forest:2,grass:3,soil:4,snow:5};
@@ -10,9 +9,9 @@ const fieldInfo = [
 ];
 let size = 32, data, kinds, selected = -1, brush = 'inspect', view = 'surface', result = null;
 let step = 0, running = false, preparing = false, requestId = 0, worldVersion = 0, resultVersion = -1;
-let worker = null, polygons = [], dragging = false, lastPainted = -1, recomputeTimer;
+let worker = null, polygons = [], geometry = null, frame = null, framePhase = -1, dragging = false, lastPainted = -1, recomputeTimer;
 let playbackStart = 0, startStep = 0, resumeWhenReady = false;
-let animationHandle = 0, lastDraw = 0;
+let animationHandle = 0, lastDraw = 0, lastUI = 0;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let canvasWidth = 1000, canvasHeight = 690;
 function status(message) { $('status').textContent = message; }
@@ -43,7 +42,8 @@ function generate() {
     data[i*STRIDE+6] = height;
     setSurface(i,kind,rng());
   }
-  selected = -1; worldVersion++; step = 0; result = null;
+  selected = -1; worldVersion++; step = 0; result = null; geometry = null;
+  frame = createFrame(size); framePhase = -1;
   $('tile-hint').textContent = `${(size*size).toLocaleString()} tiles · 100 m per tile`;
   updateInspector(); prepare(false);
 }
@@ -59,7 +59,8 @@ function prepare(play = false) {
     worker.onmessage = event => {
       if (event.data.id !== requestId) return;
       if (event.data.error) { calculationFailed(event.data.error); return; }
-      result = event.data.result; resultVersion = version; preparing = false; $('run').disabled = false;
+      result = event.data.result; resultVersion = version; preparing = false; framePhase = -1;
+      worker.terminate(); worker = null; $('run').disabled = false;
       $('export').disabled = false; $('stage-label').textContent = 'YOUR LITTLE WORLD';
       $('run').textContent = '▶ Run the day'; update(); draw();
       status('Ready. Paint a surface, inspect a tile, or send the sun across your world.');
@@ -75,7 +76,7 @@ function calculationFailed(message) {
 }
 function invalidate() {
   requestId++; if (worker) worker.terminate(); preparing = false;
-  pause(); step = 0; worldVersion++; result = null; $('export').disabled = true;
+  pause(); step = 0; worldVersion++; result = null; geometry = null; framePhase = -1; $('export').disabled = true;
   update(); draw(); clearTimeout(recomputeTimer); recomputeTimer = setTimeout(() => prepare(false),160);
 }
 function start() {
@@ -96,115 +97,179 @@ function pause() {
 function animate(now) {
   if (!running) return;
   const duration = Number($('speed').value)*1000;
-  const smoothStep = Math.min(180, startStep + (now-playbackStart)/duration*180);
-  const next = Math.floor(smoothStep);
-  if (next !== step) { step = next; update(); }
-  if (now-lastDraw >= 1000/30 || step === 180) { draw(smoothStep/180); lastDraw = now; }
+  step = Math.min(180, startStep + (now-playbackStart)/duration*180);
+  if (now-lastDraw >= 1000/60 || step === 180) { draw(); lastDraw = now; }
+  // Numerical state remains continuous; slower text updates avoid DOM churn.
+  if (now-lastUI >= 1000/20 || step === 180) { update(); lastUI = now; }
   if (step >= 180) {
     pause(); $('stage-label').textContent = 'A DAY WELL SPENT';
-    const share = result.reflected[180]/result.incident[180]*100;
+    const share = result.reflected[result.steps]/result.incident[result.steps]*100;
     status(`Day complete. ${share.toFixed(1)}% reflected; ${(100-share).toFixed(1)}% absorbed. Try a different landscape or equation.`);
   } else animationHandle = requestAnimationFrame(animate);
 }
 function update() {
   if (!running && !preparing) $('run').textContent = step >= 180 ? '↻ Run again' : '▶ Run the day';
-  $('time').value = step; $('phase').textContent = `${step}° / 180°`;
+  $('time').value = step; $('phase').textContent = `${step.toFixed(1)}° / 180°`;
   const zenith = Math.abs(90-step), period = step===0?'Sunrise':step===180?'Sunset':step===90?'Noon':step<90?'Morning':'Afternoon';
-  $('sun-label').textContent = `${period} · zenith ${zenith}°`;
-  const incident = result?.incident[step] || 0, reflected = result?.reflected[step] || 0;
+  $('sun-label').textContent = `${period} · zenith ${zenith.toFixed(1)}°`;
+  const incident = energyAt(result?.incident), reflected = energyAt(result?.reflected);
   const fraction = incident > 0 ? reflected/incident : 0;
-  $('reflected').replaceChildren(document.createTextNode((reflected/1000).toFixed(2)), unit(' kWh/m²'));
-  $('incoming').replaceChildren(document.createTextNode((incident/1000).toFixed(2)), unit(' kWh/m²'));
-  $('share').replaceChildren(document.createTextNode(incident>0?(fraction*100).toFixed(1):'—'),unit(' %'));
+  $('reflected').firstChild.nodeValue = (reflected/1000).toFixed(2);
+  $('incoming').firstChild.nodeValue = (incident/1000).toFixed(2);
+  $('share').firstChild.nodeValue = incident>0?(fraction*100).toFixed(1):'—';
   $('total-energy').textContent = `${(reflected*size*size*.01).toLocaleString(undefined,{maximumFractionDigits:1})} MWh across the landscape`;
   $('energy-fill').style.width = `${fraction*100}%`; $('energy-progress').setAttribute('aria-valuenow',(fraction*100).toFixed(1));
   $('challenge-text').textContent = step===180 && result ? fraction>=.35 ? `Challenge complete! You returned ${(fraction*100).toFixed(1)}% of the day’s sunlight. What could push it higher?` : `You returned ${(fraction*100).toFixed(1)}%. Try adding snow or sea ice to reach the 35% challenge.` : 'Your challenge: return 35% of the day’s sunlight to the sky. Can you do it?';
-  if (selected>=0) updateTileAlbedo(); drawChart();
+  if (selected>=0) updateTileAlbedo(); updateIrradiance();
 }
-function unit(text) { const span=document.createElement('span'); span.textContent=text; return span; }
+function energyAt(values) {
+  if (!values || !result) return 0;
+  const position = step / 180 * result.steps, lower = Math.floor(position), upper = Math.min(result.steps, lower + 1);
+  return values[lower] + (values[upper] - values[lower]) * (position - lower);
+}
+function currentFrame() {
+  if (!result || !frame) return null;
+  const phase = step / 180;
+  if (framePhase !== phase) {
+    evaluateFrame({data, size, cloud:Number($('cloud').value)/100, terrainShadows:$('shadows').checked}, result.cache, phase, frame);
+    framePhase = phase;
+  }
+  return frame;
+}
+function updateIrradiance() {
+  const live = currentFrame();
+  for (const [name, watts] of [['incoming',live?.watts || 0],['reflected',live?.reflectionWatts || 0]]) {
+    $(`${name}-bar`).style.height = `${clamp(watts/1000)*100}%`;
+    $(`${name}-watts`).textContent = watts.toFixed(0);
+    $(`${name}-meter`).setAttribute('aria-valuenow',watts.toFixed(1));
+  }
+}
 function resize() {
-  const box=canvas.getBoundingClientRect(), dpr=Math.min(devicePixelRatio || 1,2);
-  canvasWidth=1000; canvasHeight=1000*box.height/Math.max(1,box.width);
+  const box=canvas.getBoundingClientRect();
+  if (box.width <= 0 || box.height <= 0) return;
+  const dpr=Math.min(devicePixelRatio || 1,1.5,Math.sqrt(1500000/(box.width*box.height)));
+  canvasWidth=1000; canvasHeight=1000*box.height/box.width;
   canvas.width=Math.round(box.width*dpr); canvas.height=Math.round(box.height*dpr);
   ctx.setTransform(canvas.width/canvasWidth,0,0,canvas.height/canvasHeight,0,0);
-  const cb=chart.getBoundingClientRect(); chart.width=Math.round(cb.width*dpr); chart.height=Math.round(cb.height*dpr);
-  chartCtx.setTransform(chart.width/1000,0,0,chart.height/180,0,0); draw(); drawChart();
+  geometry=null; draw();
 }
-function rgb(color,factor=1) { return `rgb(${color.map(v=>Math.round(clamp(v*factor,0,255))).join(',')})`; }
+function rgb(color,factor=1) {
+  return `rgb(${Math.round(clamp(color[0]*factor,0,255))},${Math.round(clamp(color[1]*factor,0,255))},${Math.round(clamp(color[2]*factor,0,255))})`;
+}
 function polygon(points,color,stroke) {
-  ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fillStyle=color;ctx.fill();
+  ctx.beginPath();
+  for(let i=0;i<points.length;i++) { const p=points[i]; if(i)ctx.lineTo(p[0],p[1]);else ctx.moveTo(p[0],p[1]); }
+  ctx.closePath();ctx.fillStyle=color;ctx.fill();
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=.7;ctx.stroke();}
 }
-function draw(phase = step/180) {
-  if (!data) return;
-  const w=canvasWidth,h=canvasHeight,sine=Math.sin(phase*Math.PI);
-  const sky=ctx.createLinearGradient(0,0,0,h);sky.addColorStop(0,rgb([17+19*sine,36+18*sine,33+20*sine]));sky.addColorStop(1,'#10271f');ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
-  const sunX=110+780*phase, sunY=164-100*sine;
-  const glow=ctx.createRadialGradient(sunX,sunY,2,sunX,sunY,90);glow.addColorStop(0,'#fce9a14a');glow.addColorStop(1,'#fce9a100');ctx.fillStyle=glow;ctx.fillRect(sunX-90,sunY-90,180,180);
-  ctx.strokeStyle='#b5cc9c20';ctx.setLineDash([3,7]);ctx.beginPath();for(let k=0;k<=180;k++){const x=110+780*k/180,y=164-100*Math.sin(k/180*Math.PI);k?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='#f2dfa0';ctx.beginPath();ctx.arc(sunX,sunY,11,0,Math.PI*2);ctx.fill();
-  if(!reducedMotion.matches){ctx.strokeStyle='#f2dfa060';for(let k=0;k<8;k++){const a=k*Math.PI/4;ctx.beginPath();ctx.moveTo(sunX+Math.cos(a)*17,sunY+Math.sin(a)*17);ctx.lineTo(sunX+Math.cos(a)*22,sunY+Math.sin(a)*22);ctx.stroke();}}
-  const tile=Math.min(760/(size*2), (h-250)/(size+6)), ty=tile*.52, originX=w/2, originY=h*.39;
-  const heightScale=Math.min(100,h*.15)/1000;
+// Geometry and decorative paths are cached; dense simulation grids use screen-sized groups.
+function buildGeometry() {
+  const w=canvasWidth,h=canvasHeight,tile=860/(size*2),ty=h*.54/(2*size),originX=w/2,originY=h*.36;
+  const target=clamp(Math.floor(canvas.clientWidth/13),24,64),block=Math.ceil(size/target),columns=Math.ceil(size/block);
+  let maximum=1000;
+  for(let i=0;i<size*size;i++)maximum=Math.max(maximum,data[i*STRIDE+6]);
+  const heightScale=Math.min(90,h*.16)/maximum;
   const project=(x,y,height=0)=>[originX+(x-y)*tile,originY+(x+y)*ty-height*heightScale];
-  const base=[project(0,0),project(size,0),project(size,size),project(0,size)];
-  ctx.save();ctx.shadowColor='#0006';ctx.shadowBlur=35;ctx.shadowOffsetY=20;polygon(base,'#11291e');ctx.restore();
-  polygons=[];
-  for(let diagonal=0;diagonal<size*2-1;diagonal++) for(let y=Math.max(0,diagonal-size+1);y<=Math.min(size-1,diagonal);y++) {
-    const x=diagonal-y,i=y*size+x,kind=kinds[i],height=data[i*STRIDE+6];
-    const top=[project(x,y,height),project(x+1,y,height),project(x+1,y+1,height),project(x,y+1,height)];
-    const shade=result?.shades[step*size*size+i] || 0;
-    let color=palette[kind];
-    if(view==='albedo') {
-      const a=result?.albedos[step*size*size+i] ?? .3;
-      color=[36+208*a,76+162*a,86+107*a];
+  const cells=[],byIndex=new Array(columns*columns);
+  for(let diagonal=0;diagonal<columns*2-1;diagonal++)for(let gy=Math.max(0,diagonal-columns+1);gy<=Math.min(columns-1,diagonal);gy++) {
+    const gx=diagonal-gy,x=gx*block,y=gy*block,nx=Math.min(block,size-x),ny=Math.min(block,size-y),counts=new Uint32Array(6);
+    let height=0;
+    for(let yy=y;yy<y+ny;yy++)for(let xx=x;xx<x+nx;xx++){const i=yy*size+xx;height+=data[i*STRIDE+6];counts[kinds[i]]++;}
+    height/=nx*ny;let kind=0;for(let k=1;k<6;k++)if(counts[k]>counts[kind])kind=k;
+    const top=[project(x,y,height),project(x+nx,y,height),project(x+nx,y+ny,height),project(x,y+ny,height)];
+    const centre=project(x+nx/2,y+ny/2,height),texture=new Path2D(),objects=new Path2D(),rng=random(y*size+x+71),width=tile*Math.min(nx,ny);
+    const point=(u,v)=>project(x+u*nx,y+v*ny,height);
+    for(let n=0;n<3;n++){
+      const u=.15+rng()*.65,v=.15+rng()*.65,q=point(u,v);
+      if(kind===0||kind===5){const end=point(Math.min(.96,u+.2),v);texture.moveTo(...q);texture.quadraticCurveTo(q[0]+width*.12,q[1]-width*.07,...end);}
+      if(kind===1){texture.moveTo(...point(u-.1,v));texture.lineTo(...q);texture.lineTo(...point(u+.12,v+.1));texture.lineTo(...point(u+.2,v+.04));}
+      if(kind===3){for(let k=-1;k<=1;k++){texture.moveTo(...q);texture.lineTo(q[0]+k*width*.07,q[1]-width*(.13+rng()*.12));}}
+      if(kind===2){const tall=width*(.45+rng()*.45);texture.moveTo(...q);texture.lineTo(q[0],q[1]-tall*.5);objects.moveTo(q[0],q[1]-tall);objects.lineTo(q[0]+width*.19,q[1]-tall*.12);objects.lineTo(q[0]-width*.19,q[1]-tall*.12);objects.closePath();}
+      if(kind===4||kind===1||kind===5){const r=width*(.04+rng()*.07);objects.moveTo(q[0]-r,q[1]);objects.lineTo(q[0]-r*.3,q[1]-r*.65);objects.lineTo(q[0]+r,q[1]-r*.3);objects.lineTo(q[0]+r*.7,q[1]+r*.4);objects.closePath();}
     }
-    const brightness=.53+.45*sine-(shade?.22:0);
-    if(height>1){polygon([top[1],project(x+1,y),project(x+1,y+1),top[2]],rgb(color,brightness*.62));polygon([top[2],project(x+1,y+1),project(x,y+1),top[3]],rgb(color,brightness*.77));}
-    polygon(top,rgb(color,brightness),'#10251f24');
-    if(kind===0 && view==='surface' && (x+y)%4===0){ctx.strokeStyle='#d9f0e41b';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(top[0][0],top[0][1]+ty);ctx.lineTo(top[0][0]+tile*.5,top[0][1]+ty*.75);ctx.stroke();}
-    if(kind===2 && view==='surface' && (i*17)%5===0){const c=project(x+.5,y+.5,height),th=tile*.9;ctx.fillStyle=rgb([30,74,48],brightness);ctx.fillRect(c[0]-1,c[1]-th*.2,2,th*.35);polygon([[c[0],c[1]-th],[c[0]+tile*.3,c[1]],[c[0]-tile*.3,c[1]]],rgb([56,98,58],brightness));}
-    if(i===selected){ctx.beginPath();top.forEach(([px,py],k)=>k?ctx.lineTo(px,py):ctx.moveTo(px,py));ctx.closePath();ctx.strokeStyle='#f4e3a0';ctx.lineWidth=2;ctx.stroke();}
-    polygons.push({i,points:top});
+    const cell={i:y*size+x,x,y,nx,ny,kind,points:top,centre,height,texture,objects,
+      right:[top[1],project(x+nx,y),project(x+nx,y+ny),top[2]],
+      left:[top[2],project(x+nx,y+ny),project(x,y+ny),top[3]]};
+    cells.push(cell);byIndex[gy*columns+gx]=cell;
   }
-  // Illustrative light packets: shadows suppress the incoming direct-beam trails.
-  if(running && !reducedMotion.matches && sine>.08 && result) {
+  polygons=cells;
+  return {cells,tile,project,cellAt:i=>byIndex[Math.floor(Math.floor(i/size)/block)*columns+Math.floor((i%size)/block)],base:[project(0,0),project(size,0),project(size,size),project(0,size)]};
+}
+function draw() {
+  if (!data) return;
+  if (!geometry) geometry=buildGeometry();
+  const live=currentFrame(),phase=step/180,w=canvasWidth,h=canvasHeight,sine=Math.sin(phase*Math.PI);
+  const sky=ctx.createLinearGradient(0,0,0,h);sky.addColorStop(0,rgb([17+19*sine,36+18*sine,33+20*sine]));sky.addColorStop(1,'#10271f');ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+  const sunX=110+780*phase,arcBase=h*.24,arcHeight=h*.14,sunY=arcBase-arcHeight*sine;
+  const glow=ctx.createRadialGradient(sunX,sunY,2,sunX,sunY,65);glow.addColorStop(0,'#fce9a14a');glow.addColorStop(1,'#fce9a100');ctx.fillStyle=glow;ctx.fillRect(sunX-65,sunY-65,130,130);
+  ctx.strokeStyle='#b5cc9c20';ctx.setLineDash([3,7]);ctx.beginPath();
+  for(let k=0;k<=180;k+=3){const x=110+780*k/180,y=arcBase-arcHeight*Math.sin(k/180*Math.PI);k?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#f2dfa0';ctx.beginPath();ctx.arc(sunX,sunY,9,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.shadowColor='#0006';ctx.shadowBlur=25;ctx.shadowOffsetY=12;polygon(geometry.base,'#11291e');ctx.restore();
+  const brightness=.53+.45*sine;
+  const colors=palette.map(color=>[rgb(color,brightness),rgb(color,brightness-.22),rgb(color,brightness*.62),rgb(color,(brightness-.22)*.62),rgb(color,brightness*.77),rgb(color,(brightness-.22)*.77)]);
+  const albedoColor=[0,0,0],treeColor=rgb([56,98,58],brightness),treeShade=rgb([56,98,58],brightness-.22);
+  for(const cell of geometry.cells) {
+    const {i,points:top,centre,height,kind}=cell;
+    let shadeTotal=0,albedoTotal=0;
+    if(live)for(let y=cell.y;y<cell.y+cell.ny;y++)for(let x=cell.x;x<cell.x+cell.nx;x++){const j=y*size+x;shadeTotal+=live.shades[j];albedoTotal+=live.albedos[j];}
+    const count=cell.nx*cell.ny,shade=shadeTotal/count>.5?1:0,light=brightness-.22*shadeTotal/count;
+    let topColor=colors[kind][shade],rightColor=colors[kind][2+shade],leftColor=colors[kind][4+shade];
+    if(view==='albedo') {
+      const a=live ? albedoTotal/count : .3;
+      albedoColor[0]=36+208*a;albedoColor[1]=76+162*a;albedoColor[2]=86+107*a;
+      topColor=rgb(albedoColor,light);rightColor=rgb(albedoColor,light*.62);leftColor=rgb(albedoColor,light*.77);
+    }
+    if(height>1){polygon(cell.right,rightColor);polygon(cell.left,leftColor);}
+    polygon(top,topColor,'#10251f24');
+    if(view==='surface'){
+      ctx.strokeStyle=kind===2?'#203c29':kind===3?'#4b6837':kind===4?'#8a7050':'#e6f6ef';
+      ctx.globalAlpha=.5*light;ctx.lineWidth=kind===3?.8:1;ctx.stroke(cell.texture);
+      ctx.fillStyle=kind===2?'#335c37':kind===4?'#9d8b75':kind===1?'#edf8f5':'#ced8d0';ctx.fill(cell.objects);ctx.globalAlpha=1;
+    }
+    if(selected>=0 && geometry.cellAt(selected)===cell){
+      const x=selected%size,y=Math.floor(selected/size),points=[geometry.project(x,y,height),geometry.project(x+1,y,height),geometry.project(x+1,y+1,height),geometry.project(x,y+1,height)];
+      ctx.beginPath();for(let k=0;k<4;k++)k?ctx.lineTo(...points[k]):ctx.moveTo(...points[k]);ctx.closePath();ctx.strokeStyle='#f4e3a0';ctx.lineWidth=2;ctx.stroke();
+    }
+  }
+  if(running && !reducedMotion.matches && sine>.08 && live) {
     for(let ray=0;ray<4;ray++) {
-      const i=Math.floor((.2+ray*.19)*size*size), x=i%size, y=Math.floor(i/size);
-      if(result.shades[step*size*size+i]) continue;
-      const target=project(x+.5,y+.5,data[i*STRIDE+6]);
-      const travel=(performance.now()/1700+ray*.23)%1;
-      ctx.strokeStyle='#edda9122';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sunX,sunY+15);ctx.lineTo(...target);ctx.stroke();
-      ctx.fillStyle='#ffe9a9a0';ctx.beginPath();ctx.arc(sunX+(target[0]-sunX)*travel,sunY+15+(target[1]-sunY-15)*travel,1.6,0,Math.PI*2);ctx.fill();
-      const alpha=result.albedos[step*size*size+i], up=(travel+.5)%1;
-      ctx.fillStyle=`rgba(198,230,157,${alpha*.8})`;ctx.beginPath();ctx.arc(target[0]+(phase<.5?65:-65)*up,target[1]-160*up,2,0,Math.PI*2);ctx.fill();
+      const i=Math.floor((.2+ray*.19)*size*size);if(live.shades[i])continue;
+      const target=geometry.cellAt(i).centre,travel=(performance.now()/1700+ray*.23)%1;
+      ctx.strokeStyle='#edda9122';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sunX,sunY+12);ctx.lineTo(...target);ctx.stroke();
+      ctx.fillStyle='#ffe9a9a0';ctx.beginPath();ctx.arc(sunX+(target[0]-sunX)*travel,sunY+12+(target[1]-sunY-12)*travel,1.6,0,Math.PI*2);ctx.fill();
+      const up=(travel+.5)%1;ctx.fillStyle=`rgba(198,230,157,${live.albedos[i]*.8})`;ctx.beginPath();ctx.arc(target[0]+(phase<.5?65:-65)*up,target[1]-h*.28*up,2,0,Math.PI*2);ctx.fill();
     }
   }
   ctx.fillStyle='#c2d5be65';ctx.font='11px system-ui';ctx.textAlign='center';
-  const east=project(-2,size*.55),west=project(size+2,size*.55);ctx.fillText('E',east[0]-8,east[1]);ctx.fillText('W',west[0]+8,west[1]+10);ctx.textAlign='start';
-}
-function drawChart() {
-  chartCtx.clearRect(0,0,1000,180);
-  chartCtx.strokeStyle='#dce4d5';chartCtx.lineWidth=1;
-  for(let y=35;y<=150;y+=38){chartCtx.beginPath();chartCtx.moveTo(40,y);chartCtx.lineTo(980,y);chartCtx.stroke();}
-  chartCtx.fillStyle='#7d8b78';chartCtx.font='13px system-ui';chartCtx.fillText('W/m²',0,18);chartCtx.fillText('Sunrise',40,175);chartCtx.fillText('Noon',484,175);chartCtx.fillText('Sunset',937,175);
-  if(!result) return;
-  const path=(values,color,fill=false)=>{chartCtx.beginPath();chartCtx.moveTo(40,150);for(let i=0;i<=step;i++)chartCtx.lineTo(40+i/180*940,150-values[i]/1000*125);if(fill){chartCtx.lineTo(40+step/180*940,150);chartCtx.closePath();chartCtx.fillStyle=color;chartCtx.fill();}else{chartCtx.strokeStyle=color;chartCtx.lineWidth=2;chartCtx.stroke();}};
-  path(result.reflectionWatts,'#98b96a30',true);path(result.watts,'#b4bcaa');path(result.reflectionWatts,'#749758');
-  chartCtx.fillStyle='#61795b';chartCtx.font='13px system-ui';chartCtx.fillText('incoming',810,16);chartCtx.fillText('reflected',905,16);
+  const east=geometry.project(-2,size*.55),west=geometry.project(size+2,size*.55);ctx.fillText('E',east[0]-8,east[1]);ctx.fillText('W',west[0]+8,west[1]+10);ctx.textAlign='start';
 }
 function hit(event) {
-  const box=canvas.getBoundingClientRect(),x=(event.clientX-box.left)/box.width*canvasWidth,y=(event.clientY-box.top)/box.height*canvasHeight;
-  for(let k=polygons.length-1;k>=0;k--){const {i,points}=polygons[k];let inside=false;for(let a=0,b=points.length-1;a<points.length;b=a++){const [ax,ay]=points[a],[bx,by]=points[b];if((ay>y)!==(by>y)&&x<(bx-ax)*(y-ay)/(by-ay)+ax)inside=!inside;}if(inside)return i;}return -1;
+  const box=canvas.getBoundingClientRect(),px=(event.clientX-box.left)/box.width*canvasWidth,py=(event.clientY-box.top)/box.height*canvasHeight;
+  for(let k=polygons.length-1;k>=0;k--){
+    const cell=polygons[k],p=cell.points[0],a=cell.points[1],b=cell.points[3];
+    const ax=a[0]-p[0],ay=a[1]-p[1],bx=b[0]-p[0],by=b[1]-p[1],dx=px-p[0],dy=py-p[1],det=ax*by-ay*bx;
+    const u=(dx*by-dy*bx)/det,v=(ax*dy-ay*dx)/det;
+    if(u>=0&&u<1&&v>=0&&v<1)return (cell.y+Math.floor(v*cell.ny))*size+cell.x+Math.floor(u*cell.nx);
+  }return -1;
 }
 function applyBrush(i) {
   if(i<0)return;selected=i;
   if(brush==='inspect'){updateInspector();draw();return;}
-  if(brush==='hill'){if(kinds[i]<2)setSurface(i,4);data[i*STRIDE+6]=Math.min(3000,data[i*STRIDE+6]+100);}
+  if(brush==='hill'){
+    // A compact Gaussian, tapered to exactly zero at the circular boundary.
+    const radius=Math.max(2,size/16),cx=i%size,cy=Math.floor(i/size),sigma=radius*.42,edge=Math.exp(-radius*radius/(2*sigma*sigma));
+    for(let y=Math.max(0,Math.ceil(cy-radius));y<=Math.min(size-1,Math.floor(cy+radius));y++)for(let x=Math.max(0,Math.ceil(cx-radius));x<=Math.min(size-1,Math.floor(cx+radius));x++){
+      const distance=(x-cx)**2+(y-cy)**2;if(distance>=radius*radius)continue;
+      const j=y*size+x;if(kinds[j]<2)setSurface(j,4);
+      const lift=100*(Math.exp(-distance/(2*sigma*sigma))-edge)/(1-edge);
+      data[j*STRIDE+6]=Math.min(3000,data[j*STRIDE+6]+lift);
+    }
+  }
   else setSurface(i,brushKinds[brush]);
   updateInspector();invalidate();
 }
-function updateTileAlbedo() { $('tile-albedo').textContent = result && selected>=0 ? `α ${result.albedos[step*size*size+selected].toFixed(3)}` : 'α —'; }
+function updateTileAlbedo() { $('tile-albedo').textContent = result && selected>=0 ? `α ${currentFrame().albedos[selected].toFixed(3)}` : 'α —'; }
 function updateInspector() {
   $('tile-fields').replaceChildren(); updateTileAlbedo();
   $('inspector-summary').textContent=selected<0?'Select a tile in the landscape to explore its inputs.':`${names[kinds[selected]]} · column ${selected%size+1}, row ${Math.floor(selected/size)+1} · edits reset the day`;
@@ -221,12 +286,15 @@ function updateInspector() {
   });
 }
 $('generate').addEventListener('click',generate);
-$('science-link').addEventListener('click',()=>{$('science').open=true;$('science').scrollIntoView({behavior:reducedMotion.matches?'auto':'smooth'});});
+$('inspector-link').addEventListener('click',()=> $('inspector').showModal());
+document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
+document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();}));
+$('science-link').addEventListener('click',()=>{$('science').showModal();});
 $('brushes').addEventListener('click',event=>{const button=event.target.closest('[data-brush]');if(!button)return;brush=button.dataset.brush;document.querySelectorAll('[data-brush]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));canvas.style.cursor=brush==='inspect'?'crosshair':'cell';});
-canvas.addEventListener('pointerdown',event=>{if(event.button!==0)return;dragging=true;lastPainted=hit(event);canvas.setPointerCapture(event.pointerId);applyBrush(lastPainted);});
+canvas.addEventListener('pointerdown',event=>{if(event.button!==0)return;dragging=true;lastPainted=hit(event);canvas.setPointerCapture(event.pointerId);applyBrush(lastPainted);if(brush==='inspect'&&lastPainted>=0){endPaint();$('inspector').showModal();}});
 canvas.addEventListener('pointermove',event=>{if(!dragging||brush==='inspect')return;const i=hit(event);if(i!==lastPainted){lastPainted=i;applyBrush(i);}});
 function endPaint(){dragging=false;lastPainted=-1;}canvas.addEventListener('pointerup',endPaint);canvas.addEventListener('pointercancel',endPaint);
-canvas.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter',' '].includes(event.key))return;event.preventDefault();if(selected<0)selected=Math.floor(size*size/2);const x=selected%size,y=Math.floor(selected/size);if(event.key==='ArrowLeft')selected=y*size+Math.max(0,x-1);if(event.key==='ArrowRight')selected=y*size+Math.min(size-1,x+1);if(event.key==='ArrowUp')selected=Math.max(0,y-1)*size+x;if(event.key==='ArrowDown')selected=Math.min(size-1,y+1)*size+x;if(event.key==='Enter'||event.key===' ')applyBrush(selected);else{updateInspector();draw();}});
+canvas.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter',' '].includes(event.key))return;event.preventDefault();if(selected<0)selected=Math.floor(size*size/2);const x=selected%size,y=Math.floor(selected/size);if(event.key==='ArrowLeft')selected=y*size+Math.max(0,x-1);if(event.key==='ArrowRight')selected=y*size+Math.min(size-1,x+1);if(event.key==='ArrowUp')selected=Math.max(0,y-1)*size+x;if(event.key==='ArrowDown')selected=Math.min(size-1,y+1)*size+x;if(event.key==='Enter'||event.key===' '){applyBrush(selected);if(brush==='inspect')$('inspector').showModal();}else{updateInspector();draw();}});
 $('run').addEventListener('click',()=>running?pause():start());
 $('reset').addEventListener('click',()=>{pause();step=0;update();draw();status('Rewound to sunrise.');});
 $('time').addEventListener('input',()=>{pause();step=Number($('time').value);update();draw();});
@@ -237,7 +305,7 @@ $('speed').addEventListener('change',()=>{if(running){startStep=step;playbackSta
 $('export').addEventListener('click',()=>{
   if(!result)return;
   const rows=['solar_arc_deg,solar_zenith_deg,incident_Wh_m2,reflected_Wh_m2,reflected_fraction'];
-  for(let i=0;i<=180;i++)rows.push([i,Math.abs(90-i),result.incident[i].toFixed(6),result.reflected[i].toFixed(6),result.incident[i]>0?(result.reflected[i]/result.incident[i]).toFixed(6):0].join(','));
+  for(let i=0;i<=result.steps;i++){const angle=i/result.steps*180;rows.push([angle.toFixed(3),Math.abs(90-angle).toFixed(3),result.incident[i].toFixed(6),result.reflected[i].toFixed(6),result.incident[i]>0?(result.reflected[i]/result.incident[i]).toFixed(6):0].join(','));}
   const blob=new Blob([rows.join('\n')+'\n'],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`reflect-${$('preset').value}-${$('seed').value}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 new ResizeObserver(resize).observe(canvas);

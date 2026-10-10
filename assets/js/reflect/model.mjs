@@ -48,8 +48,9 @@ export function simpleAlbedo(input, kind, linear = false) {
   return clamp(input[0] * 0.15 + input[1] * 0.2 + (1 - input[0] - input[1]) * 0.4 + snow * 0.4);
 }
 // Heightfield horizons: march along each east–west row. Diffuse light is unoccluded.
-export function shadows(data, size, phase, enabled = true, cellWidth = 100) {
-  const result = new Uint8Array(size * size);
+export function shadows(data, size, phase, enabled = true, cellWidth = 100, target = null) {
+  const result = target || new Uint8Array(size * size);
+  result.fill(0);
   if (!enabled) return result;
   const elevation = Math.sin(phase * Math.PI);
   if (elevation <= 0) { result.fill(1); return result; }
@@ -68,37 +69,55 @@ export function shadows(data, size, phase, enabled = true, cellWidth = 100) {
   }
   return result;
 }
-export function simulate({ data, kinds, size, cloud = 0.15, scheme = 'learned', terrainShadows = true, hours = 12, steps = 180 }) {
-  const count = size * size;
-  const coefficients = new Array(count);
-  for (let i = 0; i < count; i++) if (kinds[i] >= 2) coefficients[i] = brdf(data.subarray(i * STRIDE, (i + 1) * STRIDE));
-  const albedos = new Float32Array((steps + 1) * count);
-  const shades = new Uint8Array((steps + 1) * count);
+// Only these four coefficients per cell are retained; no per-timestep maps.
+export function surfaceCache({ data, kinds, size, scheme = 'learned' }) {
+  const cache = new Float64Array(size * size * 4);
+  for (let i = 0; i < kinds.length; i++) {
+    const input = data.subarray(i * STRIDE, (i + 1) * STRIDE), offset = i * 4;
+    if (scheme === 'learned' && kinds[i] >= 2) {
+      const p = brdf(input);
+      for (let j = 0; j < 3; j++) cache[offset + j] = 0.5395 * p[j] + 0.4689 * p[j + 3];
+      cache[offset + 3] = NaN; // Distinguishes angular C45 albedo from a constant.
+    } else cache[offset + 3] = simpleAlbedo(input, kinds[i], scheme === 'linear');
+  }
+  return cache;
+}
+export function createFrame(size) {
+  return { albedos: new Float32Array(size * size), shades: new Uint8Array(size * size), watts: 0, reflectionWatts: 0 };
+}
+export function evaluateFrame({ data, size, cloud = 0.15, terrainShadows = true }, cache, phase, frame = createFrame(size)) {
+  phase = clamp(phase);
+  const sine = phase === 0 || phase === 1 ? 0 : Math.sin(phase * Math.PI);
+  const theta = Math.acos(clamp(sine));
+  const cv = -0.007574 + theta * theta * (-0.070987 + 0.307588 * theta);
+  const cg = -1.284909 + theta * theta * (-0.166314 + 0.04184 * theta);
+  const beam = 900 * (1 - cloud), sky = 80 + 250 * cloud;
+  shadows(data, size, phase, terrainShadows, 100, frame.shades);
+  let sumIn = 0, sumOut = 0;
+  for (let i = 0; i < size * size; i++) {
+    const dir = frame.shades[i] ? 0 : beam, light = dir + sky;
+    const direct = dir / light, diffuse = sky / light, offset = i * 4;
+    const fixed = cache[offset + 3];
+    const a = Number.isNaN(fixed) ? clamp(cache[offset] + (direct * cv + diffuse * 0.189184) * cache[offset + 1] + (direct * cg - diffuse * 1.377622) * cache[offset + 2]) : fixed;
+    frame.albedos[i] = a;
+    sumIn += light; sumOut += light * a;
+  }
+  frame.watts = sumIn * sine / (size * size);
+  frame.reflectionWatts = sumOut * sine / (size * size);
+  return frame;
+}
+export function simulate(config) {
+  const { size, hours = 12, steps = 1440 } = config;
+  const cache = surfaceCache(config), frame = createFrame(size);
   const incident = new Float64Array(steps + 1), reflected = new Float64Array(steps + 1);
   const watts = new Float32Array(steps + 1), reflectionWatts = new Float32Array(steps + 1);
-  // Midpoint quadrature: integrate each interval in model time, independently of frame rate.
   const dt = hours / steps;
+  // Eight times finer quadrature, with one reusable map instead of 1,441 maps.
   for (let step = 1; step <= steps; step++) {
-    const phase = (step - 0.5) / steps;
-    const sine = Math.sin(phase * Math.PI), theta = Math.acos(clamp(sine));
-    const shadow = shadows(data, size, phase, terrainShadows);
-    const beam = 900 * (1 - cloud) * sine;
-    const sky = (80 + 250 * cloud) * sine;
-    let sumIn = 0, sumOut = 0;
-    for (let i = 0; i < count; i++) {
-      const dir = shadow[i] ? 0 : beam, incoming = dir + sky;
-      const a = scheme === 'learned' && kinds[i] >= 2 ? learnedAlbedo(coefficients[i], theta, dir / incoming, sky / incoming) : simpleAlbedo(data.subarray(i * STRIDE, (i + 1) * STRIDE), kinds[i], scheme === 'linear');
-      const index = step * count + i;
-      albedos[index] = a; shades[index] = shadow[i];
-      sumIn += incoming; sumOut += incoming * a;
-    }
-    watts[step] = sumIn / count; reflectionWatts[step] = sumOut / count;
-    incident[step] = incident[step - 1] + watts[step] * dt;
-    reflected[step] = reflected[step - 1] + reflectionWatts[step] * dt;
+    evaluateFrame(config, cache, (step - 0.5) / steps, frame);
+    watts[step] = frame.watts; reflectionWatts[step] = frame.reflectionWatts;
+    incident[step] = incident[step - 1] + frame.watts * dt;
+    reflected[step] = reflected[step - 1] + frame.reflectionWatts * dt;
   }
-  // Sunrise preview uses limiting horizon albedo; no incoming or cumulative energy.
-  for (let i = 0; i < count; i++) {
-    albedos[i] = scheme === 'learned' && kinds[i] >= 2 ? learnedAlbedo(coefficients[i], Math.PI / 2, 1, 0) : simpleAlbedo(data.subarray(i * STRIDE, (i + 1) * STRIDE), kinds[i], scheme === 'linear');
-  }
-  return { albedos, shades, incident, reflected, watts, reflectionWatts, steps, count };
+  return { cache, incident, reflected, watts, reflectionWatts, steps, count: size * size };
 }

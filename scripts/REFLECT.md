@@ -4,9 +4,16 @@ The standalone explorer lives at `/reflect/` (GitHub Pages also redirects
 `/reflect` to that route). No framework, external CDN, API key, or server-side
 simulation is required. Canvas 2D draws the isometric heightfield; a module Web
 Worker precomputes the day's radiation with transferable typed arrays. The
-largest grid is 48 × 48. Albedo and shadow frames occupy about
-2 MiB at that size; per-tile incoming flux is not stored. Rendering runs at up to 30 frames per second; reduced
-motion disables decorative light packets and pulsing markers.
+largest grid is 256 × 256. The solver retains one reusable frame, a four-value
+per-cell coefficient cache and a scalar energy timeline instead of storing all
+frames. At 256 × 256, returned simulation arrays occupy about 2 MiB (excluding
+inputs, the live frame and canvas). Rendering targets 60 fps, with controls
+updated at 20 Hz. Cached procedural paths add ripples, ice cracks and hummocks,
+forest canopies, grass tufts, rocks and snow drifts without image downloads.
+Dense grids are grouped according to available screen pixels for drawing;
+physics and tile inspection retain the full selected resolution. Canvas pixel
+count and device pixel ratio are capped. Reduced motion disables decorative
+light packets. Workers terminate after transferring their results.
 
 ## Where to edit
 
@@ -25,10 +32,11 @@ scale. The twelfth field is sea-ice concentration, used only over water.
 Vegetation fractions sum to at most 1. Temperatures are kelvin; soil moisture is
 m³/m³. Physical tile edits preserve other values, except vegetation adjustments
 which reduce the other cover when necessary. Painting replaces a tile's surface
-properties with the brush preset; raising land adds 100 m up to 3000 m.
+properties with the brush preset; raising land applies a circular Gaussian brush with a 100 m peak, tapering to zero
+at a radius of max(2, grid width / 16) cells. Elevation is capped at 3000 m.
 
 The 0–180° display is a **solar arc**, not zenith. Zenith is 90° → 0° → 90°.
-Midpoint integration uses 180 intervals over the chosen daylight duration and
+Midpoint integration uses 1440 intervals over the chosen daylight duration and
 is independent of animation timing. Cells are horizontal patches with terrain
 heights: shadows use east–west horizons, direct sunlight is blocked in shadow,
 and diffuse sunlight is not. This is not a latitude/date astronomical model,
@@ -36,10 +44,15 @@ a full atmospheric radiation model, or a terrain-slope/vegetation shadow model.
 The original broadband weights (which sum to 1.0084) are preserved, followed by
 the original final clamp. No renormalisation is applied.
 
-The chart shows interval-midpoint irradiance; accumulated energy at each point
-includes all completed intervals. kWh/m² is the area mean across every cell.
-Each cell is 10,000 m²; the MWh figure is the landscape total. CSV exports contain
-the 181 cumulative timeline points. Edits invalidate results and reset energy.
+Vertical gauges show instantaneous incident and reflected irradiance in W/m².
+Accumulated energy is interpolated from the integrated timeline. kWh/m² is the
+area mean across every cell. Each cell is 10,000 m²; the MWh figure is the
+landscape total. CSV exports contain 1441 cumulative timeline points. Edits
+invalidate results and reset energy. Playback speed (0.5× to 8×) changes only
+animation duration, never the integration interval or final energy.
+
+Desktop layout fits the viewport, with compact controls and dialogs for science
+and tile inputs. Small screens use normal vertical scrolling for readability.
 
 ## Validation and preview
 
