@@ -1,6 +1,6 @@
-# Reflect development
+# Reflectance development
 
-Reflect is a static browser experiment at `/reflect/`. Page markup is in
+Reflectance is a static browser experiment at `/reflect/`. Page markup is in
 `_pages/reflect.html`, styles in `assets/css/reflect.css`, and documentation in
 `scripts/REFLECT.md`.
 
@@ -10,7 +10,7 @@ Keep the project lightweight: native ES modules, Canvas 2D, typed arrays and one
 short-lived Web Worker. Avoid frameworks, remote assets, image textures and
 runtime dependencies unless a concrete benefit justifies their cost.
 
-- Preserve the supplied SpeedyWeather C45 coefficients and quadrature. See
+- Preserve the supplied SpeedyWeather learned albedo coefficients and quadrature. See
   `scripts/test_reflect.mjs` for independent Julia reference values.
 - Calculate radiation at the full selected grid resolution (up to 256 × 256).
   Adapt drawing detail to screen pixels rather than reducing physics resolution.
@@ -23,13 +23,14 @@ runtime dependencies unless a concrete benefit justifies their cost.
 - Procedural surface objects are decorative; the shadow model uses terrain
   heights, not vegetation geometry. Keep scientific assumptions visible.
 - Fit desktop controls, landscape, irradiance gauges and energy totals in one
-  viewport. Use dialogs for detailed inputs, and permit scrolling on small screens.
+  viewport. Use dialogs for detailed inputs. Keep the main page fixed on small screens too;
+  only oversized dialog contents may scroll.
 
 The terrain brush applies a bounded Gaussian lift over a circular neighborhood.
 Its peak is 100 m, its radius scales with grid size, and its edge reaches zero.
 Painting changes physical inputs and recalculates the day.
 
-## Planet lab (October 2026)
+## Spherical model (October 2026)
 
 The main `/reflect/` route now hosts the spherical energy balance model.
 The terrain implementation above remains at `/reflect/terrain/`. See
@@ -54,7 +55,7 @@ cached hourly matrix exponential; keep the approximate regional pattern separate
 and adjust its mean to the global FaIR result. Label the envelope as sensitivity scenarios,
 not a transient probabilistic confidence interval. Show perturbation imbalance
 and total seasonal imbalance distinctly. Local albedo edits must preserve the
-experiment's temperatures and history. The baseline and physical C45 inputs are
+experiment's temperatures and history. The baseline and physical learned albedo inputs are
 prescribed; SpeedyWeatherAssets supplies the mask, vegetation, soil fields,
 snow and fractional ice. Keep temperature proxies and coarse coastal fallbacks
 explicit; source climatologies are not current observations. Preserve the Jin ocean coefficients from the pinned
@@ -84,22 +85,22 @@ calibration. Keep the temperature map, inspector and tracker consistent.
 
 The pinned SpeedyWeatherAssets boundary binaries are now connected through
 `globe-boundary.mjs`. See `scripts/REFLECT.md` for active behaviour and
-`REFLECT_NEXT.md` for checkpoint status. Keep learned C45 for land; the prescribed
+`REFLECT_NEXT.md` for checkpoint status. Keep learned albedo for land; the prescribed
 albedo asset must not replace it. Preserve the two-layer swl1/swl2 convention,
 snow mass-to-water-depth conversion, monthly missing masks, nonuniform latitudes,
 longitude wrap and explicitly documented soil/air-temperature proxies.
 
 Sample climatologies for the startup date and hold the physical input fields
 fixed unless the user explicitly paints or edits them. An evolving monthly climatology would require matching changes in both
-reference and experiment. Retain C45 inputs only for land cells and release the
+reference and experiment. Retain learned albedo inputs only for land cells and release the
 source buffers after caching. Surface classification is visual; fractional sea ice
 must remain continuous in the Jin radiation mixture.
 
 ## Physical surface brushes
 
 The planet's “04 Paint a response” panel edits land cover, leaf area, elevation
-and snow as C45 inputs. Original Float32 inputs and reference BRDF coefficients
-are separate bounded arrays; never modify them when painting. Recompute C45
+and snow as learned albedo inputs. Original Float32 inputs and reference BRDF coefficients
+are separate bounded arrays; never modify them when painting. Recompute learned albedo
 only for changed land tiles, clear manual albedo overrides in physical brush
 footprints, and restore original inputs and coefficients without resetting
 climate history. Vegetation conversion preserves total cover; LAI targets are
@@ -120,12 +121,12 @@ must not overwrite the selection or unfinished coordinate drafts. Flush the last
 distinct brush point on pointer-up while retaining one request in flight.
 
 The project's purpose is to demonstrate learned land-albedo influence on global
-climate and sensitivity to each physical input. Prioritise complete C45 input
+climate and sensitivity to each physical input. Prioritise complete learned albedo input
 controls, one-input sweeps and an unchanged control with edited-minus-control
 temperature/forcing readouts. Keep these analyses bounded and distinguish the
 surface experiment from warming relative to the 280 ppm reference. The tile
-editor now exposes all eleven C45 inputs independently; moisture uses m³/m³ and
-temperature uses kelvin. Temperature edits affect C45 reflection only and remain
+editor now exposes all eleven learned albedo inputs independently; moisture uses m³/m³ and
+temperature uses kelvin. Temperature edits affect learned albedo reflection only and remain
 prescribed during climate integration. Detect changes and restore originals across
 all eleven fields, including soil and air inputs even when surface classification
 stays unchanged. Bounds are exploration guardrails, not validated training ranges.
@@ -133,12 +134,61 @@ See `scripts/REFLECT_NEXT.md` for the remaining sweeps and control comparisons.
 
 The user stopped offline simulations; do not resume them without a new request.
 
+## Matched control, kernels and sensitivity explorer
+
+Call the equations **learned albedo**, never the obsolete complexity label.
+Preserve their supplied numerical expressions and constants.
+
+The headline result is experimental surface minus an unchanged matched control.
+Control and experiment share CO₂, orbit, wind and global atmospheric settings;
+original physical inputs and local scattering remain unchanged in the control.
+Both keep their own three global FaIR states. Edits/undo must preserve thermal
+history; never re-equilibrate temperatures after a brush change.
+
+Default land-albedo forcing uses the prescribed monthly CACK CM derivative.
+CACK sets the conversion from albedo change to TOA forcing, independently of
+the illustrative scattering dial. Evaluate original and edited reflection under
+the same illumination, replace the idealised albedo term with CACK, and avoid
+double transmission/screening. Its hourly solar weighting is approximate; it
+does not supply hourly cloud observations. Keep the source-year, coarse grid,
+polar-night policy and omitted uncertainty visible in the scientific notes.
+The raw `CACKv1.0/` directory and all NetCDF inputs must remain excluded from
+both Git and the Jekyll output. Only the approved 388,800-byte monthly derivative
+and its provenance can be published. Keep at most two sampled kernel planes.
+
+Retain published FaIR thermal parameters jointly: feedback, capacities, exchanges
+and efficacy. Keep the efficacy term consistent in imbalance and heat accounting.
+The three selected thermal sets are sensitivity scenarios, not the full posterior
+ensemble. Preserve pinned provenance and the reproducible selection script.
+
+The one-input preview snapshots its inputs and resolves 24 hourly solar phases,
+without advancing climate state. Cap it at 4096 land cells and 25 curve points,
+release scratch arrays afterwards and cancel stale work after edits/configuration.
+Cover bounds must be valid in every regional tile. Manual overrides are excluded
+from the learned preview. Conditional equilibrium estimates repeat one day's
+forcing indefinitely and must not be labelled as transient climate forecasts.
+
+Daily radiation diagnostics are sums over the last completed 24 integrated hours,
+labelled with their interval. Maps remain instantaneous. Retain bounded scalar
+history and annual forcing rings, not per-hour cell snapshots. Eight Float32 fields
+form pooled frames; do not introduce an idle redraw loop. Surface undo/redo history
+is limited to 24 entries and 4 MiB; saved setups are sparse surfaces/settings and
+start new runs, never pretend to resume a thermal checkpoint.
+
+The interface has a native flat map and nonmodal inspector. Keep the main page a
+fixed viewport dashboard with no document or nested panel scrolling. Advanced
+settings and climate context use native dialogs. Compact viewports reuse the same
+paint-control DOM in a dialog, rather than cloning inputs or adding a layout loop.
+Only oversized dialogs may scroll; retain access to every control and CSV history
+when short windows omit the chart. The model diagram is a native SVG in
+`assets/images/reflect-model.svg`, with component attribution links.
+
 ## Hourly radiation and integration
 
 Radiation uses each tile's latitude, longitude and hourly midpoint zenith angle.
 Greenwich solar noon is fixed at 12 UTC (no equation of time); direct sunlight is
 zero on the night side, and area-weighted incoming power is corrected to S/4.
-Evaluate C45 black-sky kernels at that angle and clamp after mixing direct/diffuse
+Evaluate learned albedo black-sky kernels at that angle and clamp after mixing direct/diffuse
 power. Use the bounded 4097-point wind-specific Jin lookup, retaining only
 reference and current wind tables. Earth-coordinate shader/fallback lighting must
 use the same subsolar point; annual camera spin is decorative.

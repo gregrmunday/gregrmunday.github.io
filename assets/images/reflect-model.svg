@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 730" role="img" aria-labelledby="title description">
+  <title id="title">Reflectance: from surface albedo to global temperature</title>
+  <desc id="description">SpeedyWeatherAssets surface inputs and hourly sunlight feed learned land albedo and Jin ocean albedo. CACK converts land-albedo changes to top-of-atmosphere forcing. An illustrative two-stream budget handles ocean and scattering changes. Area-weighted solar forcing plus logarithmic CO2 forcing drive FaIR's global surface, upper-ocean and deep-ocean layers. Edited and unchanged control runs are compared. Attribution links accompany the components.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="#688372"/></marker>
+    <style>
+      text { font-family:Arial,sans-serif; fill:#183b32; }
+      .heading { font-size:25px; font-weight:600; }
+      .label { font-size:19px; font-weight:600; }
+      .copy { font-size:15px; }
+      .credit { font-size:13px; fill:#386c60; text-decoration:underline; }
+      .note { font-size:14px; fill:#596f61; }
+      .box { fill:#fffef8; stroke:#c6d4c2; stroke-width:1.5; }
+      .kernel { fill:#e2efdf; stroke:#6f9a78; stroke-width:1.5; }
+      .thermal { fill:#eef0e0; stroke:#a6b58c; stroke-width:1.5; }
+      .flow { fill:none; stroke:#688372; stroke-width:2; marker-end:url(#arrow); }
+      a:hover .box,a:hover .kernel,a:hover .thermal { stroke:#267459; stroke-width:3; }
+    </style>
+  </defs>
+  <rect width="1080" height="730" rx="18" fill="#f4f6ec"/>
+  <text x="28" y="38" class="heading">Reflectance · the model at a glance</text>
+  <text x="28" y="62" class="note">Hourly physics · daily output · prescribed surface inputs and atmosphere</text>
+
+  <a xlink:href="https://github.com/SpeedyWeather/SpeedyWeatherAssets/tree/e46cdef753200df4b1a9600ce0634ede80a6a19f/data/boundary_conditions" target="_blank" rel="noopener noreferrer">
+    <rect class="box" x="24" y="90" width="286" height="92" rx="12"/>
+    <text x="42" y="117" class="label">Geographic surface inputs</text>
+    <text x="42" y="142" class="copy">Cover, LAI, soil, snow, height, ice</text>
+    <text x="42" y="165" class="credit">SpeedyWeatherAssets · ERA5 vegetation ↗</text>
+  </a>
+  <rect class="box" x="338" y="90" width="286" height="92" rx="12"/>
+  <text x="356" y="117" class="label">Hourly illumination</text>
+  <text x="356" y="142" class="copy">Solar angle, orbit, direct / diffuse light</text>
+  <text x="356" y="165" class="note">Kepler orbit · Gaussian scattering</text>
+  <a xlink:href="https://gml.noaa.gov/ccgg/trends/gl_trend.html" target="_blank" rel="noopener noreferrer">
+    <rect class="box" x="678" y="90" width="370" height="92" rx="12"/>
+    <text x="698" y="117" class="label">Global CO₂</text>
+    <text x="698" y="142" class="copy">Concentration → forcing: 5.35 ln(C / 280)</text>
+    <text x="698" y="165" class="credit">NOAA dated estimate · IPCC forcing form ↗</text>
+  </a>
+  <path d="M167 182V200H481V182" fill="none" stroke="#688372" stroke-width="2"/>
+  <path class="flow" d="M167 200V225"/><path class="flow" d="M481 200V225"/>
+
+  <rect class="box" x="24" y="225" width="286" height="106" rx="12"/>
+  <text x="42" y="254" class="label">Learned land albedo</text>
+  <text x="42" y="279" class="copy">11 inputs → cached BRDF parameters</text>
+  <text x="42" y="301" class="copy">Lucht (2000) black / white-sky kernels</text>
+  <text x="42" y="320" class="note">Gregory Munday · learned equations</text>
+  <a xlink:href="https://doi.org/10.1364/OE.19.026429" target="_blank" rel="noopener noreferrer">
+    <rect class="box" x="338" y="225" width="286" height="106" rx="12"/>
+    <text x="356" y="254" class="label">Jin · ocean albedo</text>
+    <text x="356" y="279" class="copy">Sun angle, wind, foam, fractional ice</text>
+    <text x="356" y="301" class="copy">Direct and diffuse ocean reflection</text>
+    <text x="356" y="320" class="credit">Jin et al. (2011) · SpeedyWeather port ↗</text>
+  </a>
+  <path class="flow" d="M167 331V368"/><path class="flow" d="M481 331V368"/>
+
+  <a xlink:href="https://doi.org/10.5194/gmd-12-3975-2019" target="_blank" rel="noopener noreferrer">
+    <rect class="kernel" x="24" y="368" width="286" height="124" rx="12"/>
+    <text x="42" y="398" class="label">CACK · land-albedo forcing</text>
+    <text x="42" y="423" class="copy">ΔF = −monthly kernel × Δalbedo</text>
+    <text x="42" y="446" class="copy">Prescribed monthly all-sky screening</text>
+    <text x="42" y="466" class="note">Approximate hourly sunlight weighting</text>
+    <text x="42" y="483" class="credit">Bright &amp; O’Halloran (2019) · CERES ↗</text>
+  </a>
+  <rect class="box" x="338" y="368" width="286" height="124" rx="12"/>
+  <text x="356" y="398" class="label">Illustrative radiation budget</text>
+  <text x="356" y="423" class="copy">Two-stream transmission and reflection</text>
+  <text x="356" y="446" class="copy">Ocean, orbit and scattering changes</text>
+  <text x="356" y="466" class="note">Also available as a land comparison</text>
+  <text x="356" y="483" class="note">Illustrative · not observed TOA flux</text>
+  <path class="flow" d="M167 492V510H322V574H338"/><path class="flow" d="M481 492V525"/>
+
+  <rect class="kernel" x="338" y="525" width="286" height="95" rx="12"/>
+  <text x="356" y="555" class="label">Global solar forcing</text>
+  <text x="356" y="580" class="copy">Spherical area-weighted mean ΔASR</text>
+  <text x="356" y="601" class="note">Original 280 ppm Earth reference</text>
+  <path class="flow" d="M624 574H658V327H710"/><path class="flow" d="M863 182V225"/>
+
+  <a xlink:href="https://docs.fairmodel.net/en/stable/examples/calibrated_constrained_ensemble.html" target="_blank" rel="noopener noreferrer">
+    <rect class="thermal" x="678" y="225" width="370" height="395" rx="12"/>
+    <text x="698" y="256" class="label">FaIR · global thermal response</text>
+    <text x="698" y="280" class="copy">CO₂ forcing + solar forcing enter the surface</text>
+    <rect class="box" x="710" y="301" width="306" height="53" rx="8"/>
+    <text x="730" y="333" class="label">Surface / mixed layer · T₀</text>
+    <path d="M863 360V383" fill="none" stroke="#688372" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <rect class="box" x="710" y="392" width="306" height="53" rx="8"/>
+    <text x="730" y="424" class="label">Upper ocean · T₁</text>
+    <path d="M863 451V474" fill="none" stroke="#688372" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <rect class="box" x="710" y="483" width="306" height="53" rx="8"/>
+    <text x="730" y="515" class="label">Deep ocean · T₂</text>
+    <text x="698" y="559" class="copy">Heat exchange + outgoing radiation feedback</text>
+    <text x="698" y="582" class="note">Three joint thermal sets · ~2.5 / 3 / 4°C ECS</text>
+    <text x="698" y="604" class="credit">FaIR equations · published calibration 1.4.1 ↗</text>
+  </a>
+  <path class="flow" d="M863 620V644"/>
+  <rect class="box" x="338" y="644" width="710" height="60" rx="12"/>
+  <text x="356" y="670" class="label">Result: edited − unchanged control</text>
+  <text x="356" y="691" class="copy">Temperature, TOA forcing and heat stores · same CO₂, orbit and global atmosphere</text>
+  <text x="28" y="540" class="note">CACK replaces the land-albedo</text>
+  <text x="28" y="561" class="note">contribution; no extra attenuation.</text>
+  <text x="28" y="612" class="note">Prescribed inputs · no interactive clouds,</text>
+  <text x="28" y="633" class="note">carbon cycle or ecosystem feedbacks.</text>
+  <text x="28" y="680" class="note">Regional temperatures are illustrative.</text>
+  <text x="28" y="701" class="note">Scenario range is not a confidence interval.</text>
+</svg>

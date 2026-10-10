@@ -3,7 +3,7 @@
 Usage: python build_reflect_boundary_conditions.py /path/to/netcdf/files
 Requires numpy and netCDF4 for this offline conversion only. Inputs must come
 from the pinned commit recorded below. Runtime integration is tracked in
-scripts/REFLECT_NEXT.md. Does not substitute prescribed albedo for learned C45.
+scripts/REFLECT_NEXT.md. Does not substitute prescribed albedo for learned albedo.
 """
 from pathlib import Path
 import hashlib
@@ -56,7 +56,7 @@ for offset, variable, scale in [(0, 'vegh', 1 / 255), (1, 'vegl', 1 / 255),
     static[..., offset] = np.rint(np.clip(remap(values, ys, xs), 0, 255 * scale) / scale).astype(np.uint8)
 values, ys, xs = read('orography', 'orog')
 # Despite a stale geopotential units attribute, history explicitly divides by
-# 9.80665 and long_name identifies height in metres. C45 multiplies by gravity.
+# 9.80665 and long_name identifies height in metres. Learned albedo multiplies by gravity.
 heights = np.rint(np.clip(remap(values, ys, xs), 0, 65535)).astype(np.uint16)
 static[..., 4], static[..., 5] = heights & 255, heights >> 8
 (out / 'boundary-static.bin').write_bytes(static.tobytes())
@@ -82,7 +82,7 @@ for file, variable, scale in fields:
                          units={'snow': 'kg/m2', 'lst': 'K', 'sst': 'K'}.get(variable, '1')))
 climate = np.stack(planes, axis=1)  # month, field, south-to-north latitude, longitude
 (out / 'boundary-climate.bin').write_bytes(climate.tobytes())
-manifest = dict(source=SOURCE, commit=COMMIT, status='Runtime initialisation inputs for learned C45 land and Jin ocean',
+manifest = dict(source=SOURCE, commit=COMMIT, status='Runtime initialisation inputs for learned land albedo and Jin ocean albedo',
     licence='SpeedyWeatherAssets EUPL-1.2; vegetation derived from ERA5, CC BY 4.0',
     static=dict(width=width, height=height, origin=[-180, -90], rows='south-to-north', stride=6,
                 fields=['high_cover_u8_div255', 'low_cover_u8_div255', 'high_lai_u8_div32',
@@ -96,7 +96,7 @@ manifest = dict(source=SOURCE, commit=COMMIT, status='Runtime initialisation inp
              'Monthly inputs are 96x48; remapping does not create 100 km source detail.',
              'No separate deep-soil or 2m air-temperature field exists in this bundle.',
              'Use swl1/swl2 for the two-layer SpeedyWeather initialisation convention.',
-             'Prescribed albedo.nc is deliberately excluded: land must still use learned C45.'])
+             'Prescribed albedo.nc is deliberately excluded: land must still use learned albedo.'])
 manifest['source_sha256'] = {file.name:hashlib.sha256(file.read_bytes()).hexdigest()
                              for file in sorted(root.glob('*.nc'))}
 manifest['output_sha256'] = {name:hashlib.sha256((out / name).read_bytes()).hexdigest()

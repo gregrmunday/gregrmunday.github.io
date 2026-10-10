@@ -1,32 +1,207 @@
-/* Planet overrides; the terrain lab retains its original layout. */
-.planet-app .workspace{grid-template-columns:235px minmax(0,1fr)}.planet-app .controls{padding:12px 13px}.planet-app .controls .divider{margin:11px 0}.planet-app .controls label{margin-top:7px}.planet-app .controls .section-heading{margin-bottom:5px}.planet-app .controls .help{margin:5px 0;font-size:9px}.planet-app .controls button.wide{padding:6px}.planet-app .controls input[type=range]{height:14px;margin:3px 0}.co2-presets{display:flex;gap:5px;justify-content:flex-end}.co2-presets button{font-size:9px;padding:2px 9px;border-radius:20px}.planet-app .scene-row{grid-template-columns:minmax(0,1fr) 148px}.planet-app .stage-header{font-size:8px}.planet-app .view-toggle button{padding:4px 6px}.planet-app #planet{width:100%;height:100%;display:block;touch-action:none;cursor:grab}.globe-actions{position:absolute;left:12px;top:48px;display:flex;flex-direction:column;gap:5px}.globe-actions button{color:#d5e5df;background:#142b30aa;border-color:#d0e5da33;padding:4px 6px;font-size:13px}.globe-legend{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);font-size:9px;white-space:nowrap;color:#c5d9cc;pointer-events:none;background:#10242c99;padding:5px 10px;border-radius:20px}.orbit-panel{padding:14px 10px;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto}.orbit-panel h2{font:13px Georgia,serif}.orbit-panel #orbit{width:100%;height:auto;display:block;max-height:90px;margin:8px 0 0}.orbit-readings{font-size:9px;color:var(--muted);text-align:center;display:flex;flex-direction:column;gap:3px}.planet-flux{width:100%;margin-top:15px;flex:1;display:flex;flex-direction:column;justify-content:center}.planet-flux>div{display:grid;grid-template-columns:1fr auto;align-items:center;position:relative;margin:6px 0;padding-bottom:8px;font-size:9px;color:var(--muted);border-bottom:3px solid #e7ecdf}.planet-flux strong{font-size:17px;color:var(--ink);font-weight:450;font-variant-numeric:tabular-nums}.planet-flux i{position:absolute;height:3px;bottom:-3px;left:0;width:0;background:#8da372}.planet-flux>div:nth-child(2) i{background:#b7c496}.planet-flux>div:nth-child(3) i{background:#c59772}.planet-flux small{font-size:8px;color:var(--muted)}.annual-budget{width:100%;border-top:1px solid var(--border);padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:3px;font-size:8px;color:var(--muted)}.annual-budget strong{color:var(--ink);font-size:17px;font-weight:450;font-variant-numeric:tabular-nums}.annual-budget span:nth-last-child(2){margin-top:8px}#time-label{font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}#progress-label{margin-left:auto;font-size:9px}.planet-app .transport .secondary{font-size:10px;padding:8px 10px;white-space:nowrap}.climate-content{display:grid;grid-template-columns:1.15fr 1fr;gap:20px;margin-top:8px}.climate-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}.climate-metrics>div:first-child{grid-column:1/-1}.climate-metrics strong{font-size:24px;font-weight:450;letter-spacing:-.045em;font-variant-numeric:tabular-nums;display:block}.climate-metrics>div:first-child strong{font-size:32px}.climate-metrics strong span{font-size:11px;letter-spacing:0;color:var(--muted)}.planet-app .metric-foot{font-size:8px;display:block}.history-panel{display:flex;flex-direction:column;min-width:0;justify-content:center}#history{width:100%;height:115px}.history-key{font-size:8px;color:var(--muted);text-align:center}.history-key i{display:inline-block;width:12px;height:6px;background:#a8ba7e70;margin-right:5px}.coordinate-fields{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;max-width:650px;margin:12px 0}.coordinate-fields input{width:100%}.tile-summary{display:grid;grid-template-columns:1fr 1fr;gap:0 25px;font-size:12px;max-width:650px}.tile-summary>div{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid var(--border);padding:9px 0}.tile-summary dt{color:var(--muted)}.tile-summary dd{margin:0;white-space:nowrap}.planet-app #inspector .two-col{max-width:650px;margin:15px 0}.planet-app #inspector h2{font:22px Georgia,serif}.planet-app .science-content a{font-size:10px;color:var(--accent);text-decoration:underline}.planet-app .controls .brush-grid button{height:25px;padding:4px 6px}.planet-app .controls .brush-grid button:last-child{grid-column:1/-1}.planet-app .intro h1{font-size:40px}
-@media(max-height:800px) and (min-width:761px){.planet-app .controls{padding:9px 11px}.planet-app .controls .divider{margin:7px 0}.planet-app .controls label{margin-top:5px}.planet-app .controls select,.planet-app .controls input[type=number]{height:26px;padding:4px 7px;font-size:10px}.planet-app .controls .section-heading{margin-bottom:4px}.planet-app .controls h2{font-size:11px}.planet-app .controls .help{font-size:8px}.planet-app .controls .brush-grid button{height:22px;padding:2px 5px}.climate-metrics strong{font-size:21px}.climate-metrics>div:first-child strong{font-size:27px}#history{height:94px}.climate-content{gap:15px}.orbit-panel{padding:10px 8px}.planet-app .energy{padding:9px 13px}.planet-app .intro{padding-top:6px;padding-bottom:8px}}
-@media(max-width:1100px){.planet-app .workspace{grid-template-columns:208px minmax(0,1fr)}.planet-app .scene-row{grid-template-columns:minmax(0,1fr) 124px}.planet-app .view-toggle button{font-size:8px;padding:4px}.planet-app .stage-header{gap:7px;align-items:start}.planet-app .stage-header>div:first-child{max-width:85px;line-height:1.6}.planet-app #progress-label{display:none}.climate-content{gap:12px}.history-key{font-size:7px}.climate-metrics .metric-label{font-size:8px}.climate-metrics strong{font-size:19px}.planet-app .metric-foot{font-size:7px}.globe-legend{font-size:8px}}
-@media(max-width:760px){.planet-app .controls{display:block}.planet-app .controls .section-heading{margin-top:5px}.planet-app .controls .divider{margin:10px 0}.planet-app .controls .brush-grid{grid-template-columns:repeat(3,1fr)}.planet-app .controls .brush-grid button{height:28px}.planet-app .controls .brush-grid button:last-child{grid-column:auto}.planet-app .scene-row{height:380px;grid-template-columns:minmax(0,1fr) 102px}.planet-app .stage-header{flex-direction:column;gap:6px}.planet-app .stage-header>div:first-child{max-width:none}.planet-app .view-toggle{flex-wrap:wrap;max-width:190px}.globe-actions{top:77px}.orbit-panel{padding:12px 7px}.orbit-panel h2{font-size:11px}.orbit-readings{font-size:8px}.planet-flux>div{font-size:8px}.planet-flux strong{font-size:14px}.annual-budget strong{font-size:15px}.globe-legend{max-width:190px;white-space:normal;text-align:center;font-size:7px;bottom:44px}.planet-app .transport{flex-wrap:wrap;gap:8px}#time-label{font-size:10px}.climate-content{grid-template-columns:1fr;gap:9px}.climate-metrics{grid-template-columns:1fr 1fr}.climate-metrics>div:first-child{grid-column:1/-1}.history-panel{border-top:1px solid var(--border);padding-top:6px}#history{height:110px}.coordinate-fields{grid-template-columns:1fr 1fr}.coordinate-fields button{grid-column:1/-1}.tile-summary{grid-template-columns:1fr}.planet-app .intro>div:first-child{display:block}.planet-app .intro h1{font-size:35px}.planet-app .lede{margin-top:4px}.planet-app .topbar{gap:8px;font-size:9px}.planet-app .topbar .quiet{font-size:9px;padding:0}.planet-app .home-link{margin-right:auto}}
+/* Planet workspace: readable controls, bounded canvases, no UI framework. */
+.planet-app .intro { padding:6px 0 10px; }
+.planet-app .intro h1 { font-size:36px; }
+.planet-app .workspace { grid-template-columns:260px minmax(0,1fr); }
+.planet-app .controls { padding:14px; font-size:13px; }
+.planet-app label { font-size:12px; line-height:1.4; }
+.planet-app select,.planet-app input[type=number],.planet-app input[type=text] { height:34px; padding:6px 8px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:var(--paper); color:var(--ink); width:100%; min-width:0; }
+.planet-app button { min-height:32px; font-size:12px; }
+.planet-app .quiet { min-height:28px; }
+.planet-app .help,.planet-app .metric-foot { font-size:12px; line-height:1.5; }
+.planet-app .tiny { font-size:11px; }
+.control-group { border-bottom:1px solid var(--border); padding:9px 0; }
+.control-group:first-child { padding-top:0; }
+.control-group summary,.input-details summary,.sensitivity-panel summary,.comparison-details summary { cursor:pointer; font-size:13px; font-weight:600; padding:3px 0; }
+.control-group[open] summary { margin-bottom:10px; }
+.planet-app .controls .section-heading { margin:9px 0 6px; }
+.planet-app .controls .paint-heading { margin-top:16px; }
+.planet-app .controls h2 { font-size:14px; }
+.planet-app .controls .brush-grid { margin-top:10px; }
+.planet-app .controls .brush-grid button { height:auto; min-height:36px; }
+.planet-app .controls .paint-note { display:block; margin:8px 0; }
+.edit-actions { display:flex; gap:7px; margin-top:9px; }
+.edit-actions button { flex:1; }
+.co2-presets { display:flex; gap:5px; }
+.co2-presets button { flex:1; padding:4px; }
+.planet-app .scene-row { grid-template-columns:minmax(0,1fr) 160px; }
+.planet-app .stage-header { font-size:10px; gap:10px; align-items:start; }
+.map-tools { display:flex; gap:6px; max-width:65%; }
+.planet-app .map-tools select { color:#e5eee2; background:#193934; border-color:#668473; width:170px; height:32px; font-size:11px; }
+.planet-app .map-tools button { color:#e5eee2; border-color:#668473; white-space:nowrap; padding:5px 8px; font-size:11px; }
+.planet-app #planet { width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+.globe-actions { position:absolute; top:55px; left:13px; display:flex; flex-direction:column; gap:7px; }
+.globe-actions button { background:#173c3599; color:#e2ebdc; border-color:#79948566; font-size:18px; width:34px; padding:2px; }
+.globe-legend { position:absolute; left:50%; transform:translateX(-50%); bottom:38px; font-size:11px; max-width:80%; text-align:center; color:#d9e7d5; pointer-events:none; background:#102a29b8; border-radius:9px; padding:6px 10px; }
+#colour-key { display:grid; grid-template-columns:1fr 1fr; font-size:10px; margin-top:4px; }
+#colour-key[hidden] { display:none; }
+#colour-key i { grid-column:1/-1; height:5px; margin-bottom:3px; background:linear-gradient(90deg,#3774ad,#e0e9df,#d85f30); border-radius:3px; }
+#colour-key.sequential i { background:linear-gradient(90deg,#1f4961,#f4eec2); }
+#colour-min { text-align:left; } #colour-max { text-align:right; }
+.orbit-panel { padding:12px 10px; display:flex; flex-direction:column; align-items:center; min-height:0; overflow:visible; }
+.orbit-panel h2 { font:15px Georgia,serif; }
+.orbit-panel #orbit { width:100%; height:auto; max-height:70px; display:none; }
+.orbit-readings { font-size:11px; color:var(--muted); text-align:center; display:flex; flex-direction:column; gap:2px; margin:5px 0; }
+.orbit-panel select { margin-top:7px; }
+.orbit-panel .help { font-size:11px; margin:5px 0; text-align:center; }
+.planet-flux { width:100%; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.planet-flux>div { display:flex; justify-content:space-between; align-items:center; gap:4px; position:relative; margin:7px 0; padding-bottom:7px; font-size:11px; color:var(--muted); border-bottom:3px solid #e7ecdf; }
+.planet-flux strong { font-size:20px; color:var(--ink); font-weight:450; font-variant-numeric:tabular-nums; }
+.planet-flux i { position:absolute; left:0; bottom:-3px; height:3px; background:#8da372; }
+.planet-flux>div:nth-child(2) i { background:#b7c496; }.planet-flux>div:nth-child(3) i { background:#c59772; }
+.planet-flux small,.annual-budget small { font-size:10px; color:var(--muted); }
+.annual-budget { width:100%; border-top:1px solid var(--border); padding-top:8px; margin-top:8px; display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--muted); }
+.annual-budget strong { font-size:19px; color:var(--ink); font-weight:450; font-variant-numeric:tabular-nums; }
+.annual-budget span:nth-last-child(2) { margin-top:5px; }
+.planet-app .transport { flex-wrap:wrap; gap:9px; }
+#time-label { font-size:12px; font-variant-numeric:tabular-nums; } #progress-label { margin-left:auto; font-size:11px; }
+.playback-control { display:flex; gap:5px; align-items:center; }.playback-control label { margin:0; font-size:11px; }.playback-control select { width:135px; }
+.climate-content { display:grid; grid-template-columns:1.05fr 1fr; gap:18px; margin-top:9px; }
+.climate-metrics { display:grid; grid-template-columns:1fr 1fr; gap:9px 14px; }
+.climate-metrics>div:first-child { grid-column:1/-1; }
+.climate-metrics strong { display:block; font-size:24px; font-weight:450; font-variant-numeric:tabular-nums; letter-spacing:-.035em; }
+.climate-metrics>div:first-child strong { font-size:32px; }
+.climate-metrics strong span { font-size:12px; color:var(--muted); letter-spacing:0; }
+.planet-app .metric-label { font-size:12px; }
+.planet-app .metric-foot { display:block; font-size:11px; }
+.planet-app .energy { max-height:none; overflow:visible; }
+.history-panel { min-width:0; display:flex; flex-direction:column; justify-content:center; }
+#history { width:100%; height:125px; }.history-key { font-size:11px; color:var(--muted); text-align:center; }.history-key i { display:inline-block; width:12px; height:6px; background:#a8ba7e70; margin-right:5px; }
+.comparison-details { border-top:1px solid var(--border); padding-top:7px; margin-top:9px; }
+.context-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; font-size:12px; margin:12px 0; }.context-grid strong,.context-grid span { display:block; }.context-grid strong { font-size:20px; font-weight:500; }.context-grid span { font-size:11px; }
+.heat-stores { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; font-size:12px; }
+.planet-app .status { font-size:11px; line-height:1.4; }
+.planet-app dialog.inspector { right:14px; left:auto; top:75px; bottom:14px; margin:0; width:440px; max-width:calc(100vw - 28px); max-height:none; padding:24px 18px; box-shadow:0 12px 50px #10251f44; }
+.planet-app #inspector h2 { font:22px Georgia,serif; margin:3px 32px 12px 0; }
+.coordinate-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:end; margin:12px 0; }.coordinate-fields button { grid-column:1/-1; }
+.tile-summary { display:grid; grid-template-columns:1fr; gap:0; font-size:12px; margin:12px 0; }.tile-summary>div { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid var(--border); padding:6px 0; }.tile-summary dt { color:var(--muted); min-width:0; }.tile-summary dd { margin:0; text-align:right; max-width:55%; }
+#boundary-note { line-height:1.6; }
+.input-details,.sensitivity-panel { border-top:1px solid var(--border); padding:12px 0; }
+#land-editor { border:1px solid var(--border); border-radius:8px; padding:10px; margin:12px 0; }#land-editor:disabled { opacity:.5; }#land-editor legend { font-size:12px; color:var(--accent); }
+.land-fields { display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin-bottom:12px; }.land-input-heading { font-size:14px; margin:12px 0 5px; }.planet-app #land-editor-note { display:block; margin:7px 0; }
+#sensitivity-chart { width:100%; height:150px; display:block; margin:12px 0; } #sensitivity-chart[hidden] { display:none; }.sensitivity-panel .two-col { align-items:end; }
+.planet-app .science-content { grid-template-columns:1fr 1fr; }.planet-app .science p { font-size:13px; }.planet-app .science-content a { text-decoration:underline; font-size:12px; }
+@media(min-height:850px) { .orbit-panel #orbit { display:block; } }
+@media(max-width:1100px) and (min-width:761px) { .planet-app .workspace { grid-template-columns:230px minmax(0,1fr); }.planet-app .scene-row { grid-template-columns:minmax(0,1fr) 145px; }#progress-label { display:none; }.map-tools { max-width:75%; }.planet-app .stage-header>div:first-child { max-width:95px; font-size:9px; }.climate-content { grid-template-columns:1fr; gap:6px; }#history { height:80px; }.climate-metrics>div:first-child { grid-column:auto; }.climate-metrics { grid-template-columns:1.1fr 1fr 1fr; }.climate-metrics strong,.climate-metrics>div:first-child strong { font-size:24px; } }
+@media(max-width:760px) {
+ .planet-app .intro h1 { font-size:32px; }.planet-app .workspace { display:flex; flex-direction:column; }.planet-app .stage-column { order:1; }.planet-app .controls { order:2; display:block; padding:14px; }.planet-app .scene-row { height:310px; grid-template-columns:minmax(0,1fr) 120px; }.planet-app .stage-header { flex-direction:column; gap:6px; top:9px; left:9px; right:9px; }.map-tools { max-width:100%; gap:4px; }.planet-app .map-tools select { width:108px; font-size:10px; }.planet-app .map-tools button { padding:4px; font-size:10px; }.globe-actions { top:88px; left:9px; }.globe-legend { font-size:10px; max-width:90%; bottom:44px; padding:4px 7px; }.orbit-panel { padding:9px 7px; }.orbit-panel h2 { font-size:13px; }.orbit-readings { font-size:10px; }.planet-flux strong { font-size:16px; }.planet-flux>div { font-size:10px; }.annual-budget { font-size:10px; }.annual-budget strong { font-size:15px; }.orbit-panel .help { font-size:10px; }.planet-app .climate-content { grid-template-columns:1fr; gap:8px; }.planet-app .energy { max-height:none; overflow:visible; }.planet-app .stage-column { display:flex; }.climate-metrics strong { font-size:23px; }.climate-metrics>div:first-child strong { font-size:29px; }#history { height:90px; }.planet-app dialog.inspector { top:26dvh; bottom:8px; right:8px; width:calc(100vw - 16px); max-width:none; padding:20px 15px; }.planet-app .science-content { grid-template-columns:1fr; }.heat-stores { grid-template-columns:1fr; }.context-grid { grid-template-columns:1fr; }.planet-app .topbar { gap:9px; font-size:10px; }.planet-app .topbar .quiet { font-size:10px; }.planet-app .controls .brush-grid { grid-template-columns:1fr 1fr; }.playback-control { margin-left:auto; }.playback-control select { width:128px; }.planet-app .stage-bottom { font-size:9px; }.planet-app .stage-bottom span:first-child { max-width:150px; }
+}
 
-/* Long input units and coastal provenance may wrap inside the tile dialog. */
-.tile-summary dt{min-width:0}.tile-summary dd{white-space:normal;text-align:right;max-width:60%}
-#boundary-note{max-width:650px;line-height:1.6}
-.planet-app .controls .brush-grid button:last-child{grid-column:auto}
-.planet-app .controls .paint-note{font-size:8px;line-height:1.3;margin:3px 0 5px}
-.planet-app .controls #amazon-view{font-size:9px;padding:2px;margin-top:3px}
-#land-editor{max-width:650px;border:1px solid var(--border);border-radius:8px;margin:16px 0;padding:10px 12px}
-#land-editor legend{font-size:12px;color:var(--accent);padding:0 5px}
-#land-editor:disabled{opacity:.5}
-.land-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px;margin-bottom:10px}
-#land-editor-note{display:block;margin:6px 0 0}
-.land-input-heading{font-size:12px;font-weight:500;color:var(--accent);margin:12px 0 6px}
-.planet-app .science-content{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media(max-width:760px){.planet-app .controls .brush-grid{grid-template-columns:repeat(2,1fr)}.land-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.planet-app .science-content{grid-template-columns:1fr}}
+#colour-key.temperature i { background:linear-gradient(90deg,#30689a,#e5e7af,#bf452d); }
+#colour-key.albedo-change i { background:linear-gradient(90deg,#8f4a33,#e0e9df,#4177a4); }
 
-@media(max-height:800px) and (min-width:761px){
- .planet-app .controls .paint-note{display:none}
- .planet-app .controls #paint-mode{height:22px}
- .planet-app .controls .divider{margin:5px 0}
- .planet-app .controls label{margin:3px 0;font-size:9px;line-height:1.1}
- .planet-app .controls input[type=range]{display:block;height:10px;margin:2px 0}
- .planet-app .controls .section-heading{margin-bottom:3px}
- .planet-app .controls .step-number{height:16px;width:16px;font-size:8px}
- .planet-app .controls button.wide{padding:4px;margin-top:6px;font-size:10px}
- .planet-app .controls select,.planet-app .controls input[type=number]{height:24px}
+.model-diagram { margin:10px 0 24px; }.model-diagram h3 { font:20px Georgia,serif; }.model-diagram p { font-size:13px; }.model-diagram object { display:block; width:100%; aspect-ratio:1080/730; border:0; border-radius:12px; }.model-diagram a { text-decoration:underline; }
+
+/* Nonmodal inspector must sit above the stage overlays. */
+.planet-app dialog.inspector { z-index:20; }
+.planet-app .planet-flux { flex:1; min-height:0; }
+.planet-app .planet-flux>div { margin:4px 0; padding-bottom:4px; }
+.planet-app .planet-flux strong { font-size:18px; }
+.planet-app .orbit-panel .help { font-size:10px; line-height:1.25; margin:4px 0; }
+.comparison-budget .annual-budget { display:grid; grid-template-columns:1fr 1fr; margin:0 0 12px; }
+.comparison-budget .annual-budget small { grid-column:1/-1; }
+@media(min-width:1101px) and (max-height:800px) {
+ .climate-metrics { grid-template-columns:1.1fr 1fr 1fr; gap:8px 12px; }
+ .climate-metrics>div:first-child { grid-column:auto; }
+ .climate-metrics strong,.climate-metrics>div:first-child strong { font-size:26px; }
+ .planet-app .metric-label { font-size:11px; }
+ #history { height:115px; }
+}
+@media(max-width:760px) { .planet-app .planet-flux strong { font-size:16px; } }
+
+.planet-app .topbar .home-link { margin-right:auto; }.planet-app .intro>div:first-child { flex-wrap:wrap; }
+
+/* The main dashboard always fits its viewport. Long forms and explanations
+   use native dialogs; no dashboard panel creates a scroll area. */
+body.planet-app { height:100dvh; min-height:0; overflow:hidden; }
+.planet-app main { flex:1; min-height:0; }
+.planet-app .topbar { margin:0 auto; }
+.planet-app .workspace { flex:1; min-height:0; }
+.planet-app .controls { overflow:visible; }
+.planet-app .stage-column { display:flex; flex-direction:column; min-height:0; }
+.planet-app .scene-row { flex:1; height:auto; min-height:0; }
+.planet-app .transport,.planet-app .energy { flex:none; }
+.planet-app .energy { overflow:visible; }
+.paint-group .section-heading { margin:0 0 12px; }
+.compact-only { display:none; }
+.result-actions { display:flex; gap:8px; align-items:center; }
+.planet-app .settings { max-width:620px; }
+.planet-app .paint-dialog { max-width:360px; }
+.planet-app .climate-context { max-width:740px; }
+.settings>h2,.paint-dialog>h2,.climate-context>h2 { font:24px Georgia,serif; margin:0 0 16px; }
+.settings .section-heading { display:none; }
+.settings .control-group { padding:12px 0; }
+.settings .control-group:last-child { border-bottom:0; }
+.settings input[type=text] { width:100%; }
+.paint-dialog .paint-group { margin-top:18px; }
+.paint-dialog .brush-grid button { min-height:38px; }
+.climate-context .comparison-details { border:0; }
+.planet-app .status { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media(max-width:760px), (max-height:560px) {
+ .compact-only { display:inline-block; }
+ .planet-app .workspace { display:flex; height:auto; }
+ .planet-app #paint-home { display:none; }
+ .planet-app .stage-column { flex:1; width:100%; }
+ .planet-app .bottom { display:none; }
+ .planet-app main { padding-bottom:10px; }
+}
+@media(max-width:760px) {
+ .planet-app .topbar { padding:6px 10px; gap:5px; flex-wrap:wrap; }
+ .planet-app .topbar>a.quiet { display:none; }
+ .planet-app main { padding-left:10px; padding-right:10px; }
+ .planet-app .intro { padding:4px 0 8px; }
+ .planet-app .intro h1 { font-size:29px; }
+ .planet-app .lede { display:none; }
+ .planet-app .scene-row { grid-template-columns:minmax(0,1fr) 106px; gap:6px; }
+ .planet-app .transport { flex-wrap:wrap; gap:5px; padding:6px 8px; }
+ .planet-app #time-label { font-size:10px; }
+ .planet-app #progress-label { display:none; }
+ .planet-app .playback-control { margin-left:auto; }
+ .planet-app .playback-control label { display:none; }
+ .planet-app .playback-control select { width:116px; font-size:10px; }
+ .planet-app .energy { padding:9px 10px; }
+ .planet-app .energy-heading { gap:6px; }
+ .planet-app .energy-heading h2 { font-size:14px; }
+ .planet-app .result-actions { gap:3px; }
+ .planet-app .result-actions button { font-size:9px; padding:2px; }
+ .planet-app .climate-metrics { grid-template-columns:1fr 1fr 1fr; gap:8px; }
+ .planet-app .climate-metrics>div:first-child { grid-column:auto; }
+ .planet-app .climate-metrics strong,.planet-app .climate-metrics>div:first-child strong { font-size:22px; }
+ .planet-app .climate-metrics strong span { font-size:10px; }
+ .planet-app .metric-label { font-size:9px; line-height:1.3; }
+ .planet-app .metric-foot { font-size:9px; line-height:1.3; }
+ .planet-app #history { height:62px; }
+ .planet-app .history-key { font-size:9px; }
+ .planet-app .orbit-panel { padding:8px 6px; }
+ .planet-app .orbit-panel h2 { font-size:12px; }
+ .planet-app .planet-flux strong { font-size:15px; }
+ .planet-app .orbit-panel select { padding:4px; font-size:10px; }
+ .planet-app .globe-legend { font-size:9px; max-width:94%; }
+}
+@media(max-height:650px) {
+ .planet-app .intro { padding:0 0 6px; }
+ .planet-app .intro h1 { font-size:29px; }
+ .planet-app .climate-content { grid-template-columns:1fr; gap:4px; }
+ .planet-app .climate-metrics { grid-template-columns:1fr 1fr 1fr; gap:8px; }
+ .planet-app .climate-metrics>div:first-child { grid-column:auto; }
+ .planet-app .climate-metrics strong,.planet-app .climate-metrics>div:first-child strong { font-size:23px; }
+ .planet-app .metric-foot { display:none; }
+ .planet-app .history-panel { display:none; }
+ .planet-app .orbit-panel #orbit { display:none; }
+ .planet-app .energy { padding:7px 12px; }
+ .planet-app .controls .paint-note { font-size:11px; }
+ .planet-app .controls { padding:12px; }
+ .planet-app .controls .brush-grid button { min-height:32px; }
+}
+@media(max-height:560px) {
+ .planet-app .topbar { padding-top:4px; padding-bottom:4px; }
+ .planet-app .intro { display:none; }
+ .planet-app .stage-column { gap:6px; }
+ .planet-app .orbit-readings,.planet-app #flux-period-note { display:none; }
+ .planet-app .transport { padding:4px 8px; }
+ .planet-app .orbit-panel { padding:6px; }
+ .planet-app .planet-flux strong { font-size:15px; }
+ .planet-app .planet-flux>div { margin:2px 0; padding-bottom:2px; }
+ .planet-app .energy-heading h2 { font-size:13px; }
+ .planet-app .metric-label { font-size:9px; }
+ .planet-app .status { font-size:9px; }
 }

@@ -1,4 +1,4 @@
-# Reflect terrain lab
+# Reflectance terrain lab
 
 The standalone explorer lives at `/reflect/terrain/`. No framework, external CDN, API key, or server-side
 simulation is required. Canvas 2D draws the isometric heightfield; a module Web
@@ -66,7 +66,7 @@ opening the HTML directly with `file://` will not run the application.
 
 Numerical checks cover analytical flat-day irradiation, energy conservation,
 snow/ice endpoints, daylight scaling, terrain shadows, diffuse-only invariance,
-and Julia-derived C45 fixtures. Three reference BRDF cases were independently
+and Julia-derived learned albedo fixtures. Three reference BRDF cases were independently
 evaluated using Julia 1.12 and matched the JavaScript implementation to machine
 precision. Local Chrome checks covered worker startup, scrubbing, tile editing,
 preset generation, positive daily totals, and a 390 px mobile viewport.

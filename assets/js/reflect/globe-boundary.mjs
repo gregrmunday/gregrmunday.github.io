@@ -1,5 +1,5 @@
 // Compact, same-origin SpeedyWeatherAssets inputs. Used only at initialisation.
-// C45 consumes physical inputs; the prescribed albedo asset is never loaded.
+// learned albedo consumes physical inputs; the prescribed albedo asset is never loaded.
 import { clamp } from './model.mjs';
 const WIDTH=720,HEIGHT=360,ROWS=48,COLS=96,PLANE=ROWS*COLS,MISSING=65535;
 const wrap=(value,length)=>(value%length+length)%length;

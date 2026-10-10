@@ -1,0 +1,31 @@
+{
+  "format": "reflect-cack-1",
+  "shape": [
+    12,
+    90,
+    180
+  ],
+  "order": "month,latitude,longitude",
+  "rows": "south-to-north",
+  "longitude_start": -180,
+  "cell_degrees": 2,
+  "scale": 0.01,
+  "dtype": "uint16_little_endian",
+  "units": "W/m2 per unit surface albedo",
+  "forcing_sign": "positive absorption change = -kernel * delta_albedo",
+  "variable": "CACK CM",
+  "years": [
+    2001,
+    2016
+  ],
+  "citation": "Bright, R. M. and O'Halloran, T. L. (2019), CACK v1.0, Geosci. Model Dev., 12, 3975\u20133990",
+  "paper": "https://doi.org/10.5194/gmd-12-3975-2019",
+  "dataset": "https://doi.org/10.6073/pasta/d77b84b11be99ed4d5376d77fe0043d8",
+  "source_sha256": "a4103211cec125f04d81d6d86a95d3f27076e1456a4114ecc52aeb44bfa0fa39",
+  "sha256": "7c242d8ba194d845d5f1aad053848f50f134a72adb1560fd6e7f76e932805101",
+  "derivation": "Spherical-area means of 2x2 native 1-degree cells; nearest 0.01 W/m2 encoding.",
+  "missing_source_values": 48516,
+  "missing_policy": "Polar-night NaNs replaced by zero before area averaging; no lit-region extrapolation.",
+  "omitted": "Year-specific kernels and all uncertainty variables; scenario envelope is thermal sensitivity only.",
+  "bytes": 388800
+}

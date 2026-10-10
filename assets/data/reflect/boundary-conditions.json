@@ -1,7 +1,7 @@
 {
   "source": "https://github.com/SpeedyWeather/SpeedyWeatherAssets/tree/e46cdef753200df4b1a9600ce0634ede80a6a19f/data/boundary_conditions",
   "commit": "e46cdef753200df4b1a9600ce0634ede80a6a19f",
-  "status": "Runtime initialisation inputs for learned C45 land and Jin ocean",
+  "status": "Runtime initialisation inputs for learned land albedo and Jin ocean albedo",
   "licence": "SpeedyWeatherAssets EUPL-1.2; vegetation derived from ERA5, CC BY 4.0",
   "static": {
     "width": 720,
@@ -228,7 +228,7 @@
     "Monthly inputs are 96x48; remapping does not create 100 km source detail.",
     "No separate deep-soil or 2m air-temperature field exists in this bundle.",
     "Use swl1/swl2 for the two-layer SpeedyWeather initialisation convention.",
-    "Prescribed albedo.nc is deliberately excluded: land must still use learned C45."
+    "Prescribed albedo.nc is deliberately excluded: land must still use learned albedo."
   ],
   "source_sha256": {
     "land-sea_mask.nc": "4be8a8aa725804aa69ff08e79de341d1f74545d97163380342d91958c1b9babe",

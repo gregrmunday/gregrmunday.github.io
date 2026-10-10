@@ -1,4 +1,4 @@
-// Direct port of the supplied SpeedyWeather C45 conditional-mean equations.
+// Direct port of the supplied SpeedyWeather learned albedo conditional-mean equations.
 // Inputs use metres, kelvin, m³/m³ soil moisture, and fractional vegetation cover.
 export const FIELDS = ['cvh', 'cvl', 'swvl1', 'stl1', 'swvl4', 'stl4', 'height', 'lai_hv', 'lai_lv', 'snow_depth', 't2m', 'ice'];
 export const STRIDE = FIELDS.length;
@@ -77,7 +77,7 @@ export function surfaceCache({ data, kinds, size, scheme = 'learned' }) {
     if (scheme === 'learned' && kinds[i] >= 2) {
       const p = brdf(input);
       for (let j = 0; j < 3; j++) cache[offset + j] = 0.5395 * p[j] + 0.4689 * p[j + 3];
-      cache[offset + 3] = NaN; // Distinguishes angular C45 albedo from a constant.
+      cache[offset + 3] = NaN; // Distinguishes angular learned albedo from a constant.
     } else cache[offset + 3] = simpleAlbedo(input, kinds[i], scheme === 'linear');
   }
   return cache;

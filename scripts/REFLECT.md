@@ -1,4 +1,4 @@
-# Reflect planet lab
+# Reflectance
 
 `/reflect/` is a static browser energy balance explorer. The earlier terrain
 experiment remains at `/reflect/terrain/`; see `REFLECT_TERRAIN.md`.
@@ -10,12 +10,17 @@ experiment remains at `/reflect/terrain/`; see `REFLECT_TERRAIN.md`.
 - `assets/js/reflect/globe-model.mjs`: spherical grid, orbit, radiation,
   approximate regional temperature pattern, reference seasons and edits.
 - `fair-ebm.mjs`: deterministic three-layer FaIR thermal equations in JavaScript.
+- `fair-calibration.mjs`: three pinned, jointly selected published thermal sets.
+- `cack-kernel.mjs`: compact monthly CACK sampler and hourly weighting.
+- `radiative-transfer.mjs`: illustrative two-stream baseline/comparison budget.
+- `sensitivity.mjs`: bounded one-input radiation preview, independent of climate state.
+- `assets/images/reflect-model.svg`: attributed, downloadable model diagram.
 - `jin-ocean.mjs`: Jin ocean albedo port from SpeedyWeather `gm/albedo`.
 - `co2-baseline.mjs`: editable dated NOAA concentration snapshot.
 - `globe-worker.mjs`: persistent worker, bounded batches, pooled snapshots.
 - `globe-render.mjs`: native WebGL sphere and capped Canvas fallback.
 - `globe-app.mjs`: playback, inspection, Gaussian brushes and CSV history.
-- `model.mjs`: unchanged supplied C45 equations shared with the terrain lab.
+- `model.mjs`: unchanged supplied learned albedo equations shared with the terrain lab.
 - `globe-boundary.mjs`: validated loader and source-grid interpolation at startup.
 - `assets/data/reflect/boundary-*.bin`: compact surface input maps and source mask.
 - `boundary-conditions.json`: format, coordinates, scales and pinned provenance.
@@ -40,7 +45,7 @@ The old Natural Earth mask/generator remains an unused legacy resource.
 Each model cell samples static fields and the mask at its centre. Vegetation
 fractions are clamped and overlapping totals are normalised while preserving
 their ratio. Elevation is in metres: the source history explicitly divided by
-gravity, despite a stale geopotential units attribute. C45 multiplies height by
+gravity, despite a stale geopotential units attribute. learned albedo multiplies height by
 gravity itself. Snow mass is divided by 1000 kg/m³ for water-equivalent metres.
 
 Monthly inputs use bilinear weights on the actual source latitudes and wrap
@@ -60,7 +65,7 @@ Surface colours are derived from dominant vegetation and snow/ice cover; ocean
 colours blend continuously with the sourced fractional sea ice. The seed only
 changes the illustrative atmospheric scattering pattern, not geographic inputs.
 
-**Land albedo still uses the supplied learned C45 equations.** The prescribed
+**Land albedo still uses the supplied learned equations.** The prescribed
 `albedo.nc` map is never loaded. Moisture uses SpeedyWeather's swl1/swl2 two-layer
 initialisation. No separate deep-soil or 2 m temperature is present in this bundle:
 land-surface temperature supplies both soil-temperature inputs and the `t2m`
@@ -100,17 +105,17 @@ Elevation increments accumulate. Vegetation conversion needs existing cover;
 planting on a bare tile is possible by setting its cover in **Tile inputs**.
 The LAI targets are illustrative brush presets, not sourced observations.
 Snow, soil moisture and temperature are preserved by the vegetation brushes.
-Elevation changes C45's physical elevation input; the displayed sphere is not
+Elevation changes learned albedo's physical elevation input; the displayed sphere is not
 deformed and there is no spherical terrain-shadow model.
 
 **Amazon example:** choose Low vegetation, click Focus Amazon and draw over the
 forest. Watch **Sunlight forcing** for the area-weighted change in absorbed
 radiation, and run the climate to follow FaIR's temperature response. Inspect a
-tile to compare its current and original high/low cover, current C45 albedo and
+tile to compare its current and original high/low cover, current learned albedo and
 local absorbed-sunlight change. This is the albedo contribution to a land-cover
 experiment; it excludes carbon release, evapotranspiration and ecosystem feedbacks.
 
-The tile dialog edits all eleven C45 inputs independently: high/low cover,
+The tile dialog edits all eleven learned albedo inputs independently: high/low cover,
 high/low leaf area, elevation, snow depth, top/deep soil moisture, top/deep soil
 temperature and near-surface air temperature. Moisture uses m³/m³ (0–1) and
 temperature uses kelvin (150–350 K; 273.15 K = 0°C). These bounds are exploration
@@ -125,10 +130,10 @@ All eleven fields participate in coefficient invalidation and exact restoration,
 including edits that leave the visual vegetation classification unchanged.
 Cover must total at most 100%; ocean tiles disable this form. Unsaved form values
 survive running climate snapshots. Applying physical surface inputs clears a
-manual albedo override for that land tile so learned C45 actually supplies the
+manual albedo override for that land tile so learned actually supplies the
 new reflection. Direct albedo and scattering brushes remain in the dropdown.
 
-Each changed land tile recalculates only its cached C45 broadband BRDF
+Each changed land tile recalculates only its cached learned albedo broadband BRDF
 coefficients and visual classification. The worker retains bounded copies of
 the original Float32 land inputs and Float64 coefficients for reference radiation
 and restoration, adding about 1 MiB at 100 km. It transfers a new ~50 KiB
@@ -155,7 +160,7 @@ spatial quadrature correction makes global incoming exactly S(r)/4 while leaving
 direct sunlight zero on the night side.
 
 Regional albedo edits are weighted by their actual incoming sunlight and spherical
-cell areas. C45's black-sky reflection uses each hour's solar-zenith kernels;
+cell areas. learned albedo's black-sky reflection uses each hour's solar-zenith kernels;
 the diffuse component uses white-sky reflection. Latitude, longitude, UTC hour
 and season therefore affect the available sunlight and angular reflection.
 Longitude shifts local solar time, so an edit's instantaneous forcing follows its
@@ -171,8 +176,9 @@ and a **+1 hour** button. Every radiation and thermal step is one model hour;
 faster playback changes how many steps are requested, never their duration.
 Slower devices take longer than the selected target. The UTC clock and displayed
 fields show the last published endpoint; integrated radiation uses hourly midpoints.
-Automatic outputs occur at elapsed-hour multiples of 24. These are instantaneous
-endpoint snapshots, not daily averages. All intervening hours still contribute to
+Automatic outputs occur at elapsed-hour multiples of 24. Map fields and temperatures are instantaneous
+endpoint snapshots. The radiation budget separately offers the actual mean of
+the last completed 24 hourly intervals, with its interval explicitly labelled. All intervening hours still contribute to
 FaIR and accumulated heat. Pausing, edits, inspection, CSV export and manual
 **+1 hour** steps force a fresh endpoint output. Daily snapshots sample the same
 UTC hour, so the displayed terminator does not sweep through a diurnal cycle;
@@ -186,11 +192,11 @@ painting/inspection tool also holds the camera orientation still. Automatic
 viewing rotation advances only with daily outputs; there is no continuous redraw
 loop between them. Camera interaction redraws immediately.
 
-C45 coefficients, normalisation and noise quadrature are unchanged. Broadband
+learned albedo coefficients, normalisation and noise quadrature are unchanged. Broadband
 BRDF coefficients are cached per land cell. Black-sky kernels use the hourly
 zenith angle; diffuse reflection uses white-sky kernels. Direct/diffuse powers
 are blended before clamping the final broadband albedo, following the supplied
-C45 formulation. No daylight average replaces these runtime kernels.
+learned albedo formulation. No daylight average replaces these runtime kernels.
 
 Jin et al. (2011) ocean reflection preserves the coefficients and defaults of
 SpeedyWeather `gm/albedo`, commit `b5eaa01a76d1ce6b083592a1e4c94f419385c77c`:
@@ -222,8 +228,9 @@ A finite-volume neighbor graph wraps longitude and joins overlapping intervals
 on adjoining latitude rows. Every edge transfers equal and opposite power;
 explicit substeps satisfy a positivity bound. This conserves the area integral
 without storing a large Gaussian weight matrix. Scattering redistributes sunlight
-and changes direct/diffuse surface reflection. It includes no clouds, atmospheric
-absorption, backscatter to space or thermal diffusion.
+and changes direct/diffuse surface reflection. The Gaussian operator itself includes no clouds or thermal diffusion. The
+separate radiation transfer schemes handle prescribed atmospheric screening;
+CACK does not derive screening from this scattering dial.
 
 ## FaIR global thermal response
 
@@ -240,18 +247,166 @@ N = F − λ T0 + (1 − ε) k2(T1 − T2)
 λ = 5.35 ln(2) / ECS
 ```
 
-Capacities `[3.62, 9.47, 98.66]` W yr/m²/K and exchanges `[2.39, 0.63]` W/m²/K
-come from the HadGEM2-ES example in FaIR's n-layer documentation. This app changes
-the example feedback to ECS 2.5, 3 and 4°C per doubling, and sets ε=1 for conservative
-exchange. These illustrative configurations are not that model's calibration
-or a posterior FaIR ensemble. The shaded range is a sensitivity scenario envelope,
-not a probabilistic transient interval from IPCC percentiles.
+Thermal parameters now come from published FaIR calibration 1.4.1, pinned at
+`4c6571c712693b5355df4b818730c7a3fab2144a`. Sets 1235755, 528199 and 1358225
+retain their feedback, all three capacities, both exchanges and deep-ocean efficacy
+**together**, giving ECS 2.4904, 2.9964 and 4.0033°C under Reflectance's forcing form.
+The source's complete carbon-cycle parameters, stochastic configuration,
+`forcing_4co2`, forcing scale and historical forcing are not used. These thermal
+subsets do not reproduce the full calibrated FaIR posterior. The envelope is a
+sensitivity scenario range, not a probabilistic IPCC transient interval.
 
-Daily forcing is sampled at the midpoint. A cached 4×4 augmented matrix
+`scripts/build_reflect_fair.py` reproduces the selection from the pinned CSV,
+checking its SHA-256. For each target ECS 2.5/3/4, take the twenty closest rows
+under `5.35 ln(2) / ocean_heat_transfer[0]`; minimise squared ECS error divided
+by 0.04² plus squared log deviations from the table-wide medians of each
+capacity, exchange and efficacy. Selection is an explicit representative heuristic,
+not a new statistical calibration. Source attribution and the upstream Apache 2.0
+licence are bundled; the browser loads only the three small numeric sets.
+
+Hourly forcing is sampled at the midpoint. A cached 4×4 augmented matrix
 exponential integrates the three-layer constant-forcing update exactly. The input
 is the change in absorbed sunlight plus CO₂ forcing: evolving imbalance is never
-fed back as an additional forcing. Surface edits and orbit changes retain the
-unchanged reference and temperatures, so their forcing is not recalibrated away.
+fed back as an additional forcing. Land and ocean forcing both enter the global
+surface/mixed-layer box; heat reaches the deeper boxes through exchange. FaIR's
+efficacy term is retained in both the global TOA imbalance and heat accounting.
+
+## Learned land albedo and CACK
+
+Learned land albedo remains the supplied symbolic equations, normalisation,
+quadrature and BRDF kernels. **CACK converts a change in that albedo to TOA
+forcing; it does not replace the learned model.** Its default monthly atmosphere
+is prescribed rather than driven by the diffuse-illumination slider.
+
+The user supplied `CACKv1.0/CACKv1.0.nc` locally and authorised publication of
+**a compact derived monthly mean kernel only**. The entire raw directory and
+NetCDF inputs are excluded from both Git and Jekyll. Do not stage or publish
+those original files or the supplied usage/derivation programs.
+
+Rebuild with `python scripts/build_reflect_cack.py CACKv1.0/CACKv1.0.nc` in an
+isolated environment with NumPy/netCDF4. The converter validates the source
+coordinate convention, layout and units, extracts `CACK CM` (2001–2016), changes
+north-to-south/0–360 coordinates to south-to-north/−180–180, and takes spherical
+area means of 2×2 native 1° cells. Twelve 90×180 uint16 planes at 0.01 W/m² per
+unit albedo occupy **388,800 bytes**. The quantisation error at each derived node
+is at most 0.005 W/m² per unit albedo. Source and derivative hashes, attribution,
+units and all conversion choices are recorded in `cack-monthly.json`.
+
+The source's missing values lie in polar-night bands. They become zero before
+area averaging; no sunlit value is extrapolated across that missing band. The
+runtime bilinearly samples the 2° centres, wraps longitude and clamps polar
+coordinates. Kernels are piecewise calendar-month values, with a repeating
+365-day calendar scaled to the model year. Year-specific and all uncertainty
+variables are omitted. The thermal scenario envelope therefore does **not**
+include CACK uncertainty, learned-model uncertainty or a full model uncertainty.
+
+The supplied CACK usage program implements `ΔF = −K × Δα` in W/m², with albedo
+on a 0–1 scale. The kernel already includes prescribed all-sky atmospheric
+screening. To retain hourly angular learned albedo without treating a monthly
+mean as hourly irradiance, Reflectance approximates:
+
+```
+K_hour(i) = K_month(i) × J_hour(i) / mean_reference_TOA_solar_month(latitude_i)
+F_land(i) = −K_hour(i) × (alpha_edited(i) − alpha_original(i))
+```
+
+`J_hour` is direct plus redistributed diffuse illumination, before the
+illustrative uniform transmission. `alpha` is the clamped first-pass broadband
+black/white-sky mixture. Both edited and original land coefficients see the same
+edited illumination when isolating the albedo term. Reference monthly solar
+means use analytic daily insolation integrated across calendar days at the
+original Earth-like orbit. Monthly means below 1 W/m² have zero sensitivity,
+preventing division by almost-zero polar-night insolation. Artificial lit seasons
+there are outside the data constraint. Two bounded per-grid monthly factor planes
+are cached; the 389 kB source stays quantised.
+
+This distributes the monthly response over an approximate hourly sunlight cycle;
+it is **not** an observed hourly cloud kernel. Latitude, season, local solar time,
+angular reflection, area and the geographic monthly CACK value all influence the
+edit's global forcing. Altering orbit or diffuse illumination retains the observed
+atmosphere; this is a conditional extrapolation, not a new climate calibration.
+
+For edited land, the idealised albedo contribution is **replaced** by CACK's
+contribution. It is not multiplied by another transmission factor. Any local
+scattering-only effect retains the idealised baseline budget. Ocean albedo,
+orbital forcing and the absolute reference budget also retain that illustrative
+budget. CACK is a differential kernel and does not supply an observed absolute
+TOA planetary energy balance or effective radiative forcing including adjustments.
+
+The comparison selector can use the idealised two-stream land forcing instead.
+With screening `s`, downward/upward transmission is `1 − 0.25s`, atmospheric
+reflection `0.20s`, and absorption `0.05s`. Returned surface-reflected light is
+assumed diffuse; its infinite bounce series is summed analytically. At `s=0`
+the **idealised** comparison recovers the unscreened limit. These coefficients are
+illustrative and spatially uniform. The default CACK land contribution already
+contains atmospheric screening regardless of this separate baseline-budget dial.
+
+## Matched control and one-input explorer
+
+An extra set of three FaIR responses follows an unchanged control with the same
+CO₂, orbit, wind and global atmospheric settings through time, retaining original
+land inputs, ocean overrides and local scattering. The experiment evolves from
+the same initial temperatures. The headline temperature, forcing and heat stores
+are **edited minus control**; global controls affect both. The original immutable
+280 ppm Earth-like reference remains available in expanded climate context.
+Undo/redo restores surfaces without resetting thermal states or time, so a past
+intervention's thermal response can remain after its forcing is removed.
+
+The inspector can preview any of the eleven learned-albedo inputs over one land
+tile or land within the current brush radius. The preview snapshots the current
+physical inputs, atmosphere and day, calculates 24 midpoint solar phases, then
+samples 25 uniform input values. All other inputs stay fixed. For regional cover
+sweeps, bounds enforce cover totals for every selected tile, not only the centre.
+Manual albedo overrides are ignored by this **learned-albedo** preview and cleared
+when a physical input is applied. Its baseline retains current heterogeneous land
+inputs; a uniformly set curve point need not match that baseline at the mean input.
+
+Charts offer irradiance-weighted daily albedo, regional surface-absorption change,
+area-weighted global TOA forcing and conditional equilibrium `ΔF / feedback`.
+The equilibrium estimate assumes the sampled day's mean forcing persists forever;
+it is not the live transient response or a seasonally integrated equilibrium.
+The actual simulation integrates climate temperatures after applying the edit
+and resuming playback. The preview pauses the climate and leaves it paused.
+Clipping reports the fraction of sampled daylight-area intervals reaching physical
+bounds. Training ranges are unavailable; field limits are exploration guardrails.
+Separate deep-soil/air-temperature data are still unavailable, so the initial
+prescribed temperature proxies remain explicit.
+
+Preview regions are capped at 4096 land cells, with one bounded radiation workspace
+and solar-phase cache released afterwards. Configuration changes and new edits
+cancel stale computations. No climate timestep or offline drift simulation is
+performed by the preview. Radiation maps remain instantaneous; the budget selector
+separately shows daily means from completed hourly integration, not the last frame.
+
+## Interface and reproducibility
+
+The main Reflectance page is a fixed, viewport-sized dashboard, with no page or
+panel scrolling. Painting tools sit beside the globe on desktop. Settings, saved
+surface setups and climate context open in native dialogs; compact viewports move
+the same painting controls into a Paint dialog without duplicating inputs. The
+history chart is omitted in short windows, with history still available by CSV.
+Only detailed dialogs permit scrolling when their contents exceed the viewport.
+The inspector is a nonmodal side panel (a lower sheet on mobile).
+Native flat-map mode allows editing anywhere without rotating the sphere; arrow
+keys move its selection and Enter inspects. Colour keys show units and fixed limits,
+including edited-minus-control albedo, surface absorption and illustrative local
+response. Regional temperature maps still use the illustrative centred local
+buckets, not resolved climate dynamics.
+
+Undo and redo retain at most 24 local edit entries and 4 MiB combined surface
+history. Painting samples are separate entries, not whole multi-sample strokes.
+A surface setup JSON includes settings, the original sampling date, sparse edited
+inputs/overrides/scattering and model/boundary/kernel version identifiers. Loading
+validates it before replacing the run, then starts a fresh CO₂-equilibrium climate
+and applies the saved intervention; it **does not resume thermal history**.
+Monthly CSV history includes the matched-control temperature/scenario response,
+instantaneous surface forcing and surface-edit heat. Export forces a current
+endpoint first. The hourly annual ring supplies a completed trailing-year mean.
+
+“How it works” includes a small native SVG diagram with source links for surface
+assets, learned equations, Jin, CACK, NOAA and FaIR. It can be opened and saved
+separately. Its arrows explicitly route total forcing through FaIR's global
+surface/mixed-layer box, then into deeper heat stores by exchange.
 
 ## Startup, seasons and regional temperatures
 
@@ -299,7 +454,7 @@ share that same mean. Scenario global temperatures share the same reference.
 The regional map is not a spatial FaIR model or resolved circulation; its simple
 local buckets can still exaggerate regional seasonal amplitudes.
 
-Main imbalance reports the change from the reference; total imbalance includes
+Expanded climate context reports imbalance relative to the original reference; total imbalance includes
 reference seasonal storage. Heat change is the exact change in reference seasonal
 FaIR heat plus the central perturbation FaIR layers' heat content, converted to ZJ.
 Local reference fluxes use the centred seasonal pattern and global FaIR season,
@@ -313,16 +468,20 @@ included. These assumptions are also visible in the app's “How it works” dia
 
 ## Lightweight implementation
 
-The previous daily numerical state occupied roughly 11 MiB at 100 km. Hourly
-geometry, cached thermal decay, longitude trigonometry, bounded ocean lookups and
-the scalar annual ring add about 2.5 MiB in the worker, plus about 0.4 MiB for
-longitude trigonometry on the main thread. These estimates exclude transient graph
-construction, browser overhead, startup scratch buffers and render buffers. FaIR adds only twelve thermal
-states and four small cached matrices. C45 inputs and BRDF coefficients are retained only for land cells; fractional ice and coastal flags
-are small per-cell arrays. Source data totals 2,251,152 bytes and is released after
-startup sampling and coefficient caching. No per-cell timestep history is retained.
-Five Float32 fields form each ~1 MiB transferable snapshot, returned to a small
-pool. At most one advance is in flight, with at most 192 requested hours and a
+Persistent state uses bounded typed arrays, cached thermal transitions and no
+per-cell timestep history. The matched control adds three tiny global responses
+and bounded local/diagnostic planes; seven global perturbation/reference FaIR
+responses hold only 21 thermal values. Startup adds temporary quadrature buffers.
+Learned inputs and BRDF coefficients are retained only for land cells. The
+2,251,152-byte boundary source is released after sampling and coefficient caching;
+CACK retains its 388,800-byte quantised source plus at most two Float32 model-grid
+factor planes. Source conversion uses Python only offline.
+
+Eight Float32 fields form each **1,629,824-byte** snapshot at 100 km, returned to
+a pool of at most two worker buffers. The main thread retains only its current
+snapshot. Undo history and previews have explicit limits. No measured total-browser
+memory/performance claim is made; browser and graphics overhead vary.
+At most one advance is in flight, with at most 192 requested hours and a
 32 ms processing budget checked after each hour. Automatic batches also stop at
 the next 24-hour output boundary. Intermediate replies carry only a completed-hour
 count; the caller carries remaining demand forward without globe frames, endpoint
@@ -343,7 +502,10 @@ API calls or uploads are needed; the compact boundary maps are same-origin stati
 ## Sources
 
 - [FaIR 2.2.4 thermal source](https://github.com/OMS-NetZero/FAIR/blob/v2.2.4/src/fair/energy_balance_model.py)
-- [FaIR n-layer example / parameter provenance](https://docs.fairmodel.net/en/v2.2.4/examples/n-layer-ebm.html)
+- [FaIR published calibration](https://docs.fairmodel.net/en/stable/examples/calibrated_constrained_ensemble.html)
+- [Pinned thermal parameter table](https://github.com/OMS-NetZero/FAIR/blob/4c6571c712693b5355df4b818730c7a3fab2144a/examples/data/calibrated_constrained_ensemble/calibrated_constrained_parameters_calibration1.4.1.csv)
+- [CACK model description](https://doi.org/10.5194/gmd-12-3975-2019)
+- [CACK dataset](https://doi.org/10.6073/pasta/d77b84b11be99ed4d5376d77fe0043d8)
 - [Jin et al. (2011)](https://doi.org/10.1364/OE.19.026429)
 - [Pinned SpeedyWeather source](https://github.com/SpeedyWeather/SpeedyWeather.jl/blob/b5eaa01a76d1ce6b083592a1e4c94f419385c77c/SpeedyWeather/src/parameterizations/albedo.jl)
 - [Cox–Munk roughness and ocean formulation](https://gmd.copernicus.org/articles/11/321/2018/)

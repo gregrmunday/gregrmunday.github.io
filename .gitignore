@@ -21,3 +21,10 @@ package-lock.json
 
 # Ignore files created by MacOS
 .DS_Store
+
+# Raw CACK scientific inputs stay local. Publish only approved compact derivatives.
+*.nc
+*.nc4
+**/CACKv1*/
+**/CACKv1*.zip
+**/CACKv1*.mat

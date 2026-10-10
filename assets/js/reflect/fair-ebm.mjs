@@ -1,14 +1,15 @@
+import { FAIR_SCENARIOS } from './fair-calibration.mjs';
 // Independent JavaScript implementation of FaIR's deterministic n-layer thermal
 // equations, specialised to three layers. Source equations: FaIR 2.2.x
 // https://docs.fairmodel.net/en/latest/api_reference.html#fair-energy-balance-model
-// Capacities/exchanges: FaIR 2.2.4 HadGEM2-ES example (Cummins et al. 2020).
+// Default capacities, exchanges, feedback and efficacy are selected jointly from
+// published FaIR calibration 1.4.1; see fair-calibration.mjs.
 // https://docs.fairmodel.net/en/v2.2.4/examples/n-layer-ebm.html
-// Feedback is reset for each assessed ECS; efficacy is set to 1, not the example
-// value 1.59. This is an illustrative configuration, not that model calibration.
+// Three representative deterministic thermal responses, not a posterior ensemble.
 // No carbon cycle, stochastic forcing process or calibrated posterior ensemble.
-export const FAIR_CAPACITY=[3.62,9.47,98.66]; // W yr m^-2 K^-1
-export const FAIR_EXCHANGE=[2.39,.63]; // W m^-2 K^-1
-export const FAIR_EFFICACY=1; // FaIR's default: conservative layer exchange
+export const FAIR_CAPACITY=FAIR_SCENARIOS[1].capacity; // W yr m^-2 K^-1
+export const FAIR_EXCHANGE=FAIR_SCENARIOS[1].exchange; // W m^-2 K^-1
+export const FAIR_EFFICACY=FAIR_SCENARIOS[1].efficacy;
 function multiply(a,b){const out=new Float64Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++)out[i*4+j]+=a[i*4+k]*b[k*4+j];return out;}
 function exponential(matrix){
  let norm=0;for(let i=0;i<4;i++){let row=0;for(let j=0;j<4;j++)row+=Math.abs(matrix[i*4+j]);norm=Math.max(norm,row);}
@@ -18,9 +19,10 @@ function exponential(matrix){
  for(let i=0;i<squarings;i++)sum=multiply(sum,sum);return sum;
 }
 export class FairResponse {
- constructor(ecs,forcing2co2,timestep=1/365.2422){
-  this.ecs=ecs;this.feedback=forcing2co2/ecs;this.capacity=FAIR_CAPACITY;this.temperature=new Float64Array(3);
-  const [c0,c1,c2]=FAIR_CAPACITY,[k1,k2]=FAIR_EXCHANGE,e=FAIR_EFFICACY;
+ constructor(ecs,forcing2co2,timestep=1/365.2422,parameters=null){
+  parameters??=FAIR_SCENARIOS.reduce((best,p)=>Math.abs(p.ecs-ecs)<Math.abs(best.ecs-ecs)?p:best);
+  this.parameters=parameters;this.feedback=parameters.feedback;this.ecs=forcing2co2/this.feedback;this.capacity=parameters.capacity;this.exchange=parameters.exchange;this.efficacy=parameters.efficacy;this.temperature=new Float64Array(3);
+  const [c0,c1,c2]=this.capacity,[k1,k2]=this.exchange,e=this.efficacy;
   const generator=new Float64Array([
    -(this.feedback+k1)/c0,k1/c0,0,1/c0,
    k1/c1,-(k1+e*k2)/c1,e*k2/c1,0,
@@ -61,6 +63,6 @@ export class FairResponse {
   t[1]=m[4]*x+m[5]*y+m[6]*z+m[7]*forcing;
   t[2]=m[8]*x+m[9]*y+m[10]*z+m[11]*forcing;
  }
- imbalance(forcing){return forcing-this.feedback*this.temperature[0]+(1-FAIR_EFFICACY)*FAIR_EXCHANGE[1]*(this.temperature[1]-this.temperature[2]);}
+ imbalance(forcing){return forcing-this.feedback*this.temperature[0]+(1-this.efficacy)*this.exchange[1]*(this.temperature[1]-this.temperature[2]);}
  heat(){return this.capacity.reduce((sum,c,i)=>sum+c*this.temperature[i],0);}
 }
