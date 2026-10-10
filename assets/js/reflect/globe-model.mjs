@@ -11,6 +11,7 @@ export const DEFAULTS={co2:280,eccentricity:.0167,tilt:23.44,scatter:.3,width:12
 export const forcing=co2=>5.35*Math.log(co2/280);
 const mod=(x,n)=>(x%n+n)%n;
 const LAND_MODES=new Set(['low-vegetation','high-vegetation','bare-ground','snow-cover','raise-terrain','lower-terrain','land-inputs','restore']);
+const LAND_FIELDS={high:[0,1],low:[1,1],height:[6,9000],highLai:[7,15],lowLai:[8,15],snow:[9,10]};
 export function orbit(day,config=DEFAULTS) {
   const e=config.eccentricity,mean=TAU*(day-2)/YEAR;let anomaly=mean;
   for(let j=0;j<8;j++)anomaly-=(anomaly-e*Math.sin(anomaly)-mean)/(1-e*Math.cos(anomaly));
@@ -144,7 +145,9 @@ export class Planet {
     }else if(mode==='snow-cover')p[9]+=(Math.max(p[9],.15)-p[9])*weight;
     else if(mode==='raise-terrain'||mode==='lower-terrain')p[6]=clamp(p[6]+(mode==='raise-terrain'?100:-100)*weight,0,9000);
     else if(mode==='land-inputs'){
-      p[0]=value.high;p[1]=value.low;p[6]=value.height;p[7]=value.highLai;p[8]=value.lowLai;p[9]=value.snow;
+      // Apply only explicitly changed fields. Display rounding must never
+      // rewrite untouched source inputs or create an unrequested forcing.
+      for(const [key,next] of Object.entries(value))p[LAND_FIELDS[key][0]]=next;
     }else if(mode==='restore')this.landInputs.set(this.baseLandInputs.subarray(offset,offset+11),offset);
     const changed=high!==p[0]||low!==p[1]||height!==p[6]||highLai!==p[7]||lowLai!==p[8]||snow!==p[9];
     if(changed){this.refreshLand(index);this.surfaceRevision++;}
@@ -247,10 +250,14 @@ export class Planet {
     if(this.elapsed%30===0){const m=this.metrics;this.history.push([m.day,m.warming,m.lower,m.upper,m.perturbation,m.imbalance,m.heat]);if(this.history.length>1200)this.history.shift();}
   }
   edit({latitude,longitude,radius=350,mode,value,index}) {
+    if(mode==='scatter'&&Number.isInteger(index)&&(!Number.isFinite(value)||value<0||value>3))throw new Error('Scattering multiplier must be a number from 0 to 3');
+    if(mode==='albedo'&&!Number.isNaN(value)&&(!Number.isFinite(value)||value<0||value>1))throw new Error('Albedo must be a number from 0 to 1, or blank for the surface scheme');
     if(mode==='land-inputs'){
-      const limits={high:1,low:1,height:9000,highLai:15,lowLai:15,snow:10};
-      if(!value||Object.entries(limits).some(([key,max])=>!Number.isFinite(value[key])||value[key]<0||value[key]>max)||value.high+value.low>1+1e-7)throw new Error('Invalid land inputs: cover must total at most 100%');
       if(!Number.isInteger(index)||index<0||index>=this.grid.count||this.landSlots[index]<0)throw new Error('Select a land tile to edit surface inputs');
+      if(!value||typeof value!=='object'||Array.isArray(value)||Object.entries(value).some(([key,next])=>!Object.hasOwn(LAND_FIELDS,key)||!Number.isFinite(next)||next<0||next>LAND_FIELDS[key][1]))throw new Error('Invalid land input value');
+      const offset=this.landSlots[index]*11,high=value.high??this.landInputs[offset],low=value.low??this.landInputs[offset+1];
+      if(high+low>1+1e-7)throw new Error('High and low vegetation cover must total at most 100%');
+      if(Object.keys(value).length===0){this.lastEdit={mode,changedCells:0,area:0};return;}
     }
     let changedCells=0,area=0;
     if(Number.isInteger(index)&&index>=0&&index<this.grid.count){

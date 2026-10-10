@@ -112,4 +112,18 @@ invalidate the cached surface texture then; ordinary rotation remains cached.
 Preserve unsaved tile-editor values during climate snapshots. Enforce cover
 totals at most one and keep ocean tiles out of the land editor.
 
+Send partial land-input patches, preserving the exact unedited Float32 values.
+An unchanged Apply must preserve prescribed albedo and radiation. Validate edits
+before mutation and recover rejected edits without discarding the climate state.
+Only explicit selection requests may change the selected tile; stale snapshots
+must not overwrite the selection or unfinished coordinate drafts. Flush the last
+distinct brush point on pointer-up while retaining one request in flight.
+
+The project's purpose is to demonstrate learned land-albedo influence on global
+climate and sensitivity to each physical input. Prioritise complete C45 input
+controls, one-input sweeps and an unchanged control with edited-minus-control
+temperature/forcing readouts. Keep these analyses bounded and distinguish the
+surface experiment from warming relative to the 280 ppm reference. See
+`scripts/REFLECT_NEXT.md` for the remaining work; these features are not yet built.
+
 The user stopped offline simulations; do not resume them without a new request.

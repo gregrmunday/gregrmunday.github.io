@@ -294,6 +294,12 @@ API calls or uploads are needed; the compact boundary maps are same-origin stati
 
 ## Local preview
 
+Focused surface-edit regressions (no climate integration or offline drift study):
+
+```
+node scripts/test_reflect_surface.mjs
+```
+
 ```
 bundle exec jekyll build
 bundle exec jekyll serve

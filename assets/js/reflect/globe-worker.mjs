@@ -34,5 +34,10 @@ self.onmessage=async({data:message})=>{
     }
     if(message.type==='edit'){planet.edit(message.edit);selected=message.edit.index??selected;snapshot('edited',Boolean(message.brushEdit));}
     if(message.type==='inspect'){selected=message.index;postMessage({type:'inspection',inspection:planet.inspect(selected)});}
-  }catch(error){postMessage({type:'error',message:error.message});}
+  }catch(error){
+    // Rejected user edits leave the valid climate state running and release
+    // brush backpressure; they must not disable the entire experiment.
+    if(message.type==='edit')postMessage({type:'edit-error',message:error.message,index:message.edit.index,brushEdit:Boolean(message.brushEdit)});
+    else postMessage({type:'error',message:error.message});
+  }
 };

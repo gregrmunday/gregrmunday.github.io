@@ -63,6 +63,45 @@ This brief bug investigation did not resume the cancelled offline drift study.
 The user cancelled offline control simulations. They remain stopped; do not
 resume them without a new request. No completed drift study is claimed.
 
+## Surface-edit bug review completed
+
+Unchanged Apply no longer rounds and rewrites the full C45 input vector or clears
+prescribed albedo. The editor sends only changed fields, preserving the exact
+other inputs. Coordinate steps match the displayed precision, coordinate drafts
+survive snapshots, and older inspector packets cannot change the selected tile.
+Blank or nonfinite scattering edits are rejected before mutation; an edit error
+leaves the experiment usable. Fast drags flush their final point without doubling
+an ordinary click. Coarse grids enforce a brush radius that reaches cell centres,
+and the paused stage label now follows playback state.
+
+`node scripts/test_reflect_surface.mjs` covers partial edits, immutable reference,
+forcing accounting, rejection, restoration and coarse-grid brush coverage without
+climate timestepping. An isolated local Chrome check exercised coordinate drafts,
+stale packets, unchanged Apply, a partial LAI edit, rejected scattering, restoration,
+click/drag handling, resumed playback and the 1280×720 layout. No browser exceptions
+were observed. This does not replace the cancelled offline drift study.
+
+## Priorities for the learned-albedo demonstration
+
+The current prototype connects C45 edits to global absorbed-shortwave forcing
+and FaIR temperature response. It does not yet isolate sensitivity to every C45
+input, or display the extra temperature response of a surface experiment clearly.
+
+1. Expose all eleven physical C45 inputs. Top/deep soil moisture, top/deep soil
+   temperature and the air-temperature proxy currently remain prescribed. Keep
+   reference inputs immutable and document independent versus linked edits.
+2. Add an unchanged control with identical CO₂, orbit and atmospheric settings,
+   showing edited-minus-control temperature, absorbed radiation and imbalance.
+   The existing 280 ppm reference warming is not a surface-only temperature metric.
+3. Add one-input-at-a-time sweeps with local albedo and regional/global forcing
+   plots, explicit baseline values, ranges and units. Sweeps can reuse cached
+   geometry and bounded buffers; retain no per-cell simulation history.
+4. Offer a fixed-albedo comparison to help distinguish the learned surface response
+   from the global thermal response. Label prescribed inputs, proxies and omitted
+   ecosystem/carbon/ice/cloud feedbacks so this remains an educational experiment.
+5. Pursue temperature-goal gameplay after these comparisons are clear. Any new
+   offline climate validation requires a fresh user request.
+
 ## Completed review
 
 Jekyll build and syntax checks passed. The isolated local Chrome preview loaded
