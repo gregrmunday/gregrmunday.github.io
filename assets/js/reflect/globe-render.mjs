@@ -48,8 +48,8 @@ export class GlobeRenderer {
     this.uniforms={};for(const key of ['map','viewport','yaw','pitch','zoom','declination','season','mode','selectedLat','selectedLon','brushRadius','hasSelection'])this.uniforms[key]=gl.getUniformLocation(this.program,key);
     this.texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   }
-  setGrid(grid,kinds) {
-    this.grid=grid;this.kinds=kinds;this.colorMode=null;this.fallbackKey=null;this.textureWidth=720;this.textureHeight=360;
+  setGrid(grid,kinds,ice) {
+    this.grid=grid;this.kinds=kinds;this.ice=ice;this.colorMode=null;this.fallbackKey=null;this.textureWidth=720;this.textureHeight=360;
     this.lookup=new Uint32Array(this.textureWidth*this.textureHeight);this.pixels=new Uint8Array(this.lookup.length*4);this.cellColors=new Uint8Array(grid.count*4);
     for(let y=0;y<this.textureHeight;y++)for(let x=0;x<this.textureWidth;x++)this.lookup[y*this.textureWidth+x]=cellAt(grid,-Math.PI/2+(y+.5)*Math.PI/this.textureHeight,-Math.PI+(x+.5)*TAU/this.textureWidth);
     if(this.gl){const gl=this.gl;gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,this.textureWidth,this.textureHeight,0,gl.RGBA,gl.UNSIGNED_BYTE,this.pixels);}
@@ -61,7 +61,7 @@ export class GlobeRenderer {
     const color=[0,0,0];
     for(let i=0;i<this.grid.count;i++){
       const j=i*5,kind=this.kinds[i];let value;
-      if(mode==='surface'){color[0]=colors[kind][0];color[1]=colors[kind][1];color[2]=colors[kind][2];}
+      if(mode==='surface'){if(kind<2)mix(colors[0],colors[1],this.ice?.[i]??0,color);else for(let c=0;c<3;c++)color[c]=colors[kind][c];}
       if(mode==='temperature'){value=clamp((fields[j]+35)/75);if(value<.5)mix([48,104,154],[229,231,175],value*2,color);else mix([229,231,175],[191,69,45],(value-.5)*2,color);}
       if(mode==='warming'){value=clamp(fields[j+4]/5,-1,1);mix([224,233,223],value<0?[59,129,172]:[203,84,45],Math.abs(value),color);}
       if(mode==='albedo')mix([31,73,97],[244,238,194],fields[j+1],color);

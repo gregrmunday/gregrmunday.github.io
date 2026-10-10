@@ -1,4 +1,5 @@
 import { Planet } from './globe-model.mjs';
+import { loadBoundary } from './globe-boundary.mjs';
 let planet=null,generation=0,pool=[],selected=-1;
 const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
 function snapshot(type='frame') {
@@ -11,14 +12,14 @@ self.onmessage=async({data:message})=>{
     if(message.type==='recycle'){if(pool.length<2)pool.push(message.buffer);return;}
     if(message.type==='initialize'){
       const id=++generation;planet=null;pool=[];selected=-1;
-      const response=await fetch(new URL('../../data/reflect/land-mask.bin',import.meta.url));
-      if(!response.ok)throw new Error('Could not load the Earth land–ocean mask');
-      const landMask=new Uint8Array(await response.arrayBuffer());
+      postMessage({type:'loading'});
+      let boundary=await loadBoundary();
       if(id!==generation)return;
-      const next=new Planet({...message.config,landMask});
+      const next=new Planet({...message.config,boundary});
+      boundary=null; // Source buffers can be released after caching C45 inputs/BRDFs.
       await next.initialize(async progress=>{postMessage({type:'progress',progress});await pause();});
       if(id!==generation)return;planet=next;
-      const kinds=planet.kinds.slice();postMessage({type:'grid',spacing:planet.grid.spacing,count:planet.grid.count,kinds},[kinds.buffer]);snapshot('ready');return;
+      const kinds=planet.kinds.slice(),ice=planet.ice.slice();postMessage({type:'grid',spacing:planet.grid.spacing,count:planet.grid.count,kinds,ice},[kinds.buffer,ice.buffer]);snapshot('ready');return;
     }
     if(!planet)return;
     if(message.type==='configure'){Object.assign(planet.config,message.config);planet.diagnose();snapshot();}

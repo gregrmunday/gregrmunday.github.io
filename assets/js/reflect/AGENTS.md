@@ -55,8 +55,9 @@ and adjust its mean to the global FaIR result. Label the envelope as sensitivity
 not a transient probabilistic confidence interval. Show perturbation imbalance
 and total seasonal imbalance distinctly. Local albedo edits must preserve the
 experiment's temperatures and history. The baseline and physical C45 inputs are
-prescribed; the Natural Earth mask supplies real coastlines but vegetation and
-ice remain illustrative. Preserve the Jin ocean coefficients from the pinned
+prescribed; SpeedyWeatherAssets supplies the mask, vegetation, soil fields,
+snow and fractional ice. Keep temperature proxies and coarse coastal fallbacks
+explicit; source climatologies are not current observations. Preserve the Jin ocean coefficients from the pinned
 SpeedyWeather gm/albedo source, its attribution and EUPL licence. Diagnose the
 roughness input explicitly from Cox–Munk wind, and clamp the final mixture.
 
@@ -70,11 +71,19 @@ value as a live feed, or the equilibrium initialisation as historical climate.
 The future albedo game should use
 this same model and keep its educational assumptions visible.
 
-## Boundary-data checkpoint
+## Geographic surface initialisation
 
-See `scripts/REFLECT_NEXT.md` before continuing. SpeedyWeatherAssets boundary
-binaries and conversion metadata are prepared at a pinned source commit, but
-runtime integration is pending. Keep learned C45 for land; the prescribed albedo
-asset must not replace it. Respect snow mass-to-water-depth conversion, monthly
-missing masks, coordinate ordering and documented temperature proxies. The user
-stopped offline simulations; do not resume them without a new request.
+The pinned SpeedyWeatherAssets boundary binaries are now connected through
+`globe-boundary.mjs`. See `scripts/REFLECT.md` for active behaviour and
+`REFLECT_NEXT.md` for checkpoint status. Keep learned C45 for land; the prescribed
+albedo asset must not replace it. Preserve the two-layer swl1/swl2 convention,
+snow mass-to-water-depth conversion, monthly missing masks, nonuniform latitudes,
+longitude wrap and explicitly documented soil/air-temperature proxies.
+
+Sample climatologies for the startup date and hold the physical input fields
+fixed. An evolving monthly climatology would require matching changes in both
+reference and experiment. Retain C45 inputs only for land cells and release the
+source buffers after caching. Surface classification is visual; fractional sea ice
+must remain continuous in the Jin radiation mixture.
+
+The user stopped offline simulations; do not resume them without a new request.

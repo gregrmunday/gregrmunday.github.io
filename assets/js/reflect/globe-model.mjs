@@ -85,32 +85,43 @@ export function dailySun(grid,day,config,incoming,vol,geo,ocean) {
   for(let r=0;r<grid.rows;r++)incoming[r]*=correction;
   return state;
 }
-function noise(seed) { let state=seed>>>0;return()=>{state+=0x6D2B79F5;let t=state;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;}; }
 export class Planet {
-  constructor({spacing=100,seed=42,landMask,...config}={}) {
-    if(!(landMask instanceof Uint8Array)||landMask.length!==32400)throw new Error("The Earth land–ocean mask is missing or invalid");
+  constructor({spacing=100,seed=42,boundary,...config}={}) {
+    if(!boundary||typeof boundary.landInputs!=="function")throw new Error("Surface boundary data is missing");
+    const month=config.initialMonth??0,fraction=config.monthFraction??0;
+    if(!Number.isInteger(month)||month<0||month>11||!Number.isFinite(fraction)||fraction<0||fraction>=1)throw new Error("Invalid surface initialisation date");
+    this.boundaryInfo={source:boundary.source,commit:boundary.commit,date:config.boundaryDate??"January climatology"};
     this.config={...DEFAULTS,co2:PRESENT_CO2.ppm,...config};this.startDay=Number(config.startDay)||0;this.responses=ECS.map(ecs=>new FairResponse(ecs,DOUBLING));this.grid=sphericalGrid(spacing);const n=this.grid.count;this.edges=graph(this.grid);
-    this.kinds=new Uint8Array(n);this.coefficients=new Float64Array(n*3);this.baseScatter=new Float32Array(n);this.scatterFactor=new Float32Array(n);
+    this.ice=new Float32Array(n);this.boundaryFlags=new Uint8Array(n);this.landSlots=new Int32Array(n).fill(-1);
+    let landCount=0;for(let i=0;i<n;i++)if(boundary.isLand(this.grid.latitude[i],this.grid.longitude[i]))this.landSlots[i]=landCount++;
+    this.landInputs=new Float32Array(landCount*11);
+    this.kinds=new Uint8Array(n);this.coefficients=new Float64Array(landCount*3);this.baseScatter=new Float32Array(n);this.scatterFactor=new Float32Array(n);
     this.override=new Float32Array(n).fill(NaN);this.capacity=new Float64Array(n);this.referenceT=new Float32Array(n);
     this.localAnomaly=new Float64Array(n);this.localMean=0;this.seasonalT=new Float64Array(n);this.baselineAnnual=new Float64Array(n);
     this.absorbed=new Float64Array(n);this.referenceAbsorbed=new Float64Array(n);this.direct=new Float64Array(n);this.diffuse=new Float64Array(n);this.scratch=new Float64Array(n);
     this.albedo=new Float32Array(n);this.fraction=new Float32Array(n);this.net=new Float32Array(n);this.incoming=new Float32Array(n);
     this.sunRow=new Float64Array(this.grid.rows);this.volRow=new Float64Array(this.grid.rows);this.geoRow=new Float64Array(this.grid.rows);this.oceanRow=new Float64Array(this.grid.rows);
     this.elapsed=0;this.heat=0;this.rolling=new Float64Array(366);this.rollingSum=0;this.rollingIndex=0;this.rollingCount=0;this.history=[];
-    const rng=noise(seed);
+    const input=new Float64Array(11),phase=(seed%360)*Math.PI/180;
     for(let i=0;i<n;i++){
-      const lat=this.grid.latitude[i],lon=this.grid.longitude[i],pixel=Math.min(359,Math.floor((lat+Math.PI/2)/Math.PI*360))*720+Math.min(719,Math.floor((lon+Math.PI)/TAU*720)),land=Boolean(landMask[pixel>>>3]&(1<<(pixel&7))),t=14-40*(Math.sin(lat)**2-1/3);
-      const polar=Math.abs(lat)>1.17,arid=Math.abs(Math.abs(lat)-.46)<.14;
-      const kind=!land?(polar?1:0):polar?5:arid?4:(Math.sin(lon*4+lat*7)+Math.cos(lon*9-lat*3)>.1?2:3);
-      this.kinds[i]=kind;this.referenceT[i]=t;this.capacity[i]=land?2e7:2.1e8;
-      const factor=clamp(.85+.32*Math.sin(3*lon+lat)*Math.cos(4*lat)+.18*Math.sin(8*lon-5*lat),.25,1.6);
+      const lat=this.grid.latitude[i],lon=this.grid.longitude[i],land=this.landSlots[i]>=0,t=14-40*(Math.sin(lat)**2-1/3);
+      this.referenceT[i]=t;this.capacity[i]=land?2e7:2.1e8;
+      const factor=clamp(.85+.32*Math.sin(3*lon+lat+phase)*Math.cos(4*lat)+.18*Math.sin(8*lon-5*lat+phase),.25,1.6);
       this.baseScatter[i]=factor;this.scatterFactor[i]=factor;
-      if(kind<2){this.coefficients[i*3]=kind===1?.6:.06;continue;}
-      const high=kind===2?.8:0,low=kind===3?.8:kind===2?.1:0,height=kind===4?350:200+600*rng(),temp=t+273.15;
-      const p=brdf([high,low,kind===4?.08:.24,temp,.19,temp+2,height,high*4,low*2,kind===5?.25:0,temp]);
-      for(let k=0;k<3;k++)this.coefficients[i*3+k]=.5395*p[k]+.4689*p[k+3];
+      if(!land){
+        this.ice[i]=boundary.oceanIce(lat,lon,month,fraction);this.boundaryFlags[i]=boundary.flags;
+        this.kinds[i]=this.ice[i]>=.15?1:0;continue;
+      }
+      boundary.landInputs(lat,lon,month,fraction,input);this.boundaryFlags[i]=boundary.flags;
+      const snowCover=input[9]/(input[9]+.05);
+      this.kinds[i]=snowCover>=.5?5:Math.max(input[0],input[1])<.15?4:input[0]>=input[1]?2:3;
+      const offset=this.landSlots[i]*11;this.landInputs.set(input,offset);
+      // Use the retained Float32 inputs so inspection shows precisely what C45 saw.
+      const p=brdf(this.landInputs.subarray(offset,offset+11));
+      for(let k=0;k<3;k++)this.coefficients[this.landSlots[i]*3+k]=.5395*p[k]+.4689*p[k+3];
     }
   }
+
   shortwave(day,config,reference=false,target=this.absorbed) {
     const grid=this.grid,n=grid.count;this.orbital=dailySun(grid,day,config,this.sunRow,this.volRow,this.geoRow,this.oceanRow);
     const oceanWhite=diffuseOcean(config.wind);
@@ -120,9 +131,12 @@ export class Planet {
     }
     const diffuse=gaussianScatter(this.diffuse,grid,this.edges,config.width,this.scratch);
     for(let i=0;i<n;i++){
-      const row=grid.rowOf[i],offset=i*3,iso=this.coefficients[offset],v=this.coefficients[offset+1],g=this.coefficients[offset+2];
-      let black=clamp(iso+this.volRow[row]*v+this.geoRow[row]*g),white=clamp(iso+.189184*v-1.377622*g);
-      if(this.kinds[i]<2){black=this.kinds[i]===1?.6:this.oceanRow[row];white=this.kinds[i]===1?.6:oceanWhite;}
+      const row=grid.rowOf[i],slot=this.landSlots[i];let black,white;
+      if(slot<0){const ice=this.ice[i];black=(1-ice)*this.oceanRow[row]+ice*.6;white=(1-ice)*oceanWhite+ice*.6;}
+      else{
+        const offset=slot*3,iso=this.coefficients[offset],v=this.coefficients[offset+1],g=this.coefficients[offset+2];
+        black=clamp(iso+this.volRow[row]*v+this.geoRow[row]*g);white=clamp(iso+.189184*v-1.377622*g);
+      }
       if(!reference&&Number.isFinite(this.override[i]))black=white=this.override[i];
       const incoming=this.direct[i]+diffuse[i],reflected=clamp(incoming>0?(this.direct[i]*black+diffuse[i]*white)/incoming:white)*incoming;
       target[i]=incoming-reflected;
@@ -183,7 +197,7 @@ export class Planet {
     }
     this.metrics={day:this.elapsed,temperature,warming:means[1],lower:Math.min(...means),upper:Math.max(...means),scenarioWarming:means,
       incoming,absorbed,reflected:incoming-absorbed,outgoing:absorbed-referenceNet-perturbedNet,imbalance:referenceNet+perturbedNet,perturbation:perturbedNet,
-      forcing:F,shortwaveForcing:perturbedNet-F+DOUBLING/3*means[1],layers:Array.from(this.responses[1].temperature),scatter,albedo:incoming>0?albedo/incoming:0,heat:this.heat/1e21,annual:this.rollingCount>=365?this.rollingSum/this.rollingCount:null,orbital:this.orbital};
+      boundary:this.boundaryInfo,forcing:F,shortwaveForcing:perturbedNet-F+DOUBLING/3*means[1],layers:Array.from(this.responses[1].temperature),scatter,albedo:incoming>0?albedo/incoming:0,heat:this.heat/1e21,annual:this.rollingCount>=365?this.rollingSum/this.rollingCount:null,orbital:this.orbital};
   }
   record() {
     // Monthly summaries, bounded history: temperatures, not per-cell snapshots.
@@ -207,7 +221,8 @@ export class Planet {
   }
   inspect(index) {
     if(index<0||index>=this.grid.count)return null;
-    return {index,latitude:this.grid.latitude[index]*180/Math.PI,longitude:this.grid.longitude[index]*180/Math.PI,kind:this.kinds[index],area:this.grid.area[index]*RADIUS*RADIUS/1e6,
+    const offset=this.landSlots[index]*11;
+    return {inputs:offset>=0?Array.from(this.landInputs.subarray(offset,offset+11)):null,ice:this.ice[index],boundaryFlags:this.boundaryFlags[index],boundary:this.boundaryInfo,index,latitude:this.grid.latitude[index]*180/Math.PI,longitude:this.grid.longitude[index]*180/Math.PI,kind:this.kinds[index],area:this.grid.area[index]*RADIUS*RADIUS/1e6,
       albedo:this.albedo[index],override:Number.isFinite(this.override[index])?this.override[index]:null,factor:this.scatterFactor[index],diffuse:this.fraction[index],temperature:this.referenceT[index]+this.seasonalT[index]+this.localAnomaly[index]-this.localMean+this.responses[1].temperature[0],incoming:this.incoming[index],net:this.net[index]};
   }
   frame(target=new Float32Array(this.grid.count*5)) {

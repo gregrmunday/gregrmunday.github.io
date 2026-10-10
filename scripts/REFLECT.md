@@ -16,8 +16,10 @@ experiment remains at `/reflect/terrain/`; see `REFLECT_TERRAIN.md`.
 - `globe-render.mjs`: native WebGL sphere and capped Canvas fallback.
 - `globe-app.mjs`: playback, inspection, Gaussian brushes and CSV history.
 - `model.mjs`: unchanged supplied C45 equations shared with the terrain lab.
-- `assets/data/reflect/land-mask.bin`: packed Natural Earth coastline raster.
-- `scripts/build_reflect_land_mask.py`: stdlib-only offline mask generator.
+- `globe-boundary.mjs`: validated loader and source-grid interpolation at startup.
+- `assets/data/reflect/boundary-*.bin`: compact surface input maps and source mask.
+- `boundary-conditions.json`: format, coordinates, scales and pinned provenance.
+- `scripts/build_reflect_boundary_conditions.py`: offline NumPy/NetCDF conversion.
 
 ## Grid and geography
 
@@ -26,17 +28,49 @@ longitude counts towards the poles avoid tiny polar cells. Areas use exact
 spherical cell boundaries and double precision. Every global mean is area weighted.
 Earth radius is 6,371 km; 200 and 400 km options reduce computation further.
 
-The land mask rasterises public-domain Natural Earth `ne_110m_land`, repository
-v5.1.2, at 720 × 360 half-degree cell centres. It occupies 32,400 bytes, with
-south-to-north rows and least-significant-bit-first packing. Each model cell
-samples the mask at its centre. Major coastlines and islands are geographic;
-narrow islands, inland waters and fractional coast cells are simplified.
-`land-mask.json` records provenance. To rebuild, download the pinned GeoJSON and
-run `python3 scripts/build_reflect_land_mask.py /path/ne_110m_land.geojson`.
+Boundary data comes from SpeedyWeatherAssets commit
+`e46cdef753200df4b1a9600ce0634ede80a6a19f`. The static 720×360 half-degree raster
+contains high/low vegetation fractions, their leaf-area indices, and elevation.
+The packed mask samples the asset's actual 0.1° binary land mask. Monthly fields
+retain the source's 96×48 Gaussian grid: swl1, swl2, land-surface temperature,
+snow mass, sea-ice concentration and SST. The loaded SST plane is currently unused;
+the globe's temperature baseline remains prescribed, not an SST observation.
+The old Natural Earth mask/generator remains an unused legacy resource.
 
-Vegetation, snow, sea ice and physical C45 inputs are prescribed illustrative
-fields. Polar ocean cells have fixed full ice cover; land temperatures and
-vegetation are not observed maps. Seed varies prescribed input fields, not coastlines.
+Each model cell samples static fields and the mask at its centre. Vegetation
+fractions are clamped and overlapping totals are normalised while preserving
+their ratio. Elevation is in metres: the source history explicitly divided by
+gravity, despite a stale geopotential units attribute. C45 multiplies height by
+gravity itself. Snow mass is divided by 1000 kg/m³ for water-equivalent metres.
+
+Monthly inputs use bilinear weights on the actual source latitudes and wrap
+longitude. Missing samples are excluded and remaining weights renormalised.
+Wholly missing coast/island stencils use the nearest valid source node on a sphere,
+cached by nearest source node and field/month. The inspector labels both coastal
+renormalisation and nearest-source fallback. Coarse source fields cannot resolve
+all ~100 km geography, especially small islands; no extra observational detail
+is created by interpolation. Polar queries clamp to the nearest source latitude.
+
+At startup, the current and next month are interpolated using the fraction of
+calendar days elapsed since the first of the month, matching SpeedyWeather's
+initialisation convention. These input fields stay fixed through the experiment.
+Surface colours are derived from dominant vegetation and snow/ice cover; ocean
+colours blend continuously with the sourced fractional sea ice. The seed only
+changes the illustrative atmospheric scattering pattern, not geographic inputs.
+
+**Land albedo still uses the supplied learned C45 equations.** The prescribed
+`albedo.nc` map is never loaded. Moisture uses SpeedyWeather's swl1/swl2 two-layer
+initialisation. No separate deep-soil or 2 m temperature is present in this bundle:
+land-surface temperature supplies both soil-temperature inputs and the `t2m`
+proxy. These are explicit modelling approximations, shown in the inspector and
+science dialog. The source inputs are climatologies, not live current conditions.
+The unchanged 280 ppm reference uses the same initialised maps as the experiment.
+
+The manifest records layouts, quantisation scales and SHA-256 provenance. Rebuild
+with `python scripts/build_reflect_boundary_conditions.py /path/to/netcdf/files`,
+using NumPy and netCDF4 in an isolated offline conversion environment. The browser
+loads native binary arrays with no NetCDF/Julia/Python dependency. Data attribution
+is bundled: SpeedyWeatherAssets EUPL-1.2 and ECMWF ERA5 vegetation CC BY 4.0.
 
 ## Orbit, daily radiation and ocean reflection
 
@@ -157,7 +191,9 @@ included. These assumptions are also visible in the app's “How it works” dia
 
 Numerical state occupies roughly 10 MiB at 100 km, excluding transient graph
 construction, browser overhead and render buffers. FaIR adds only nine thermal
-states and three small cached matrices. No per-cell timestep history is retained.
+states and three small cached matrices. C45 inputs and BRDF coefficients are retained only for land cells; fractional ice and coastal flags
+are small per-cell arrays. Source data totals 2,251,152 bytes and is released after
+startup sampling and coefficient caching. No per-cell timestep history is retained.
 Five Float32 fields form each ~1 MiB transferable snapshot, returned to a small
 pool. At most one advance is in flight, with batches capped at eight requested
 days. Worker snapshots and DOM updates target at most 12 per second; display
@@ -168,7 +204,7 @@ physics. Hidden pages pause; restart/page exit terminates the worker.
 Native WebGL uses one shader and a 720×360 texture. Pixel count is capped at
 1.2 million and DPR at 1.5. Canvas fallback ray-casts a reusable 512×384 image.
 Paused views have no idle animation loop. No runtime libraries, remote textures,
-API calls or uploads are needed; the coastline mask is a tiny same-origin asset.
+API calls or uploads are needed; the compact boundary maps are same-origin static assets.
 
 ## Sources
 
@@ -177,8 +213,7 @@ API calls or uploads are needed; the coastline mask is a tiny same-origin asset.
 - [Jin et al. (2011)](https://doi.org/10.1364/OE.19.026429)
 - [Pinned SpeedyWeather source](https://github.com/SpeedyWeather/SpeedyWeather.jl/blob/b5eaa01a76d1ce6b083592a1e4c94f419385c77c/SpeedyWeather/src/parameterizations/albedo.jl)
 - [Cox–Munk roughness and ocean formulation](https://gmd.copernicus.org/articles/11/321/2018/)
-- [Natural Earth source](https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_110m_land.geojson)
-- [Natural Earth public-domain terms](https://www.naturalearthdata.com/about/terms-of-use/)
+- [Pinned SpeedyWeatherAssets inputs](https://github.com/SpeedyWeather/SpeedyWeatherAssets/tree/e46cdef753200df4b1a9600ce0634ede80a6a19f/data/boundary_conditions)
 - [NOAA global trend estimate](https://gml.noaa.gov/ccgg/trends/gl_trend.html)
 - [Seasonal insolation](https://climlab.readthedocs.io/en/latest/api/climlab.radiation.insolation.html)
 - [IPCC AR6 ECS assessment](https://www.ipcc.ch/report/ar6/wg1/chapter/summary-for-policymakers/)

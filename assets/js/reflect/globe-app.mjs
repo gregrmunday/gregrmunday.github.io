@@ -8,7 +8,7 @@ const $=id=>document.getElementById(id),canvas=$('planet'),renderer=new GlobeRen
 let worker=null,grid=null,fields=null,metrics=null,history=[],selected=-1,ready=false,running=false,busy=false,queuedDays=0,brush='rotate',view='surface',animation=0,lastTick=0,accumulator=0,configurationTimer=0,paintTime=0,drag=null,lastFrame=0;
 const signed=(x,digits=2)=>(x>=0?'+':'−')+Math.abs(x).toFixed(digits);
 function status(text){$('status').textContent=text;}
-function config(){return{spacing:Number($('resolution').value),seed:Number($('seed').value)||0,co2:Number($('co2').value),wind:Number($('wind').value),startDay,scatter:Number($('scatter').value)/100,width:Number($('width').value),eccentricity:Number($('eccentricity').value),tilt:Number($('tilt').value)};}
+function config(){return{spacing:Number($('resolution').value),seed:Number($('seed').value)||0,co2:Number($('co2').value),wind:Number($('wind').value),startDay,initialMonth:today.getUTCMonth(),monthFraction:(today.getUTCDate()-1)/new Date(Date.UTC(today.getUTCFullYear(),today.getUTCMonth()+1,0)).getUTCDate(),boundaryDate:today.toISOString().slice(0,10),scatter:Number($('scatter').value)/100,width:Number($('width').value),eccentricity:Number($('eccentricity').value),tilt:Number($('tilt').value)};}
 function setOutputs(){
  $('wind-value').textContent=`${$('wind').value} m/s`;$('co2-value').textContent=`${$('co2').value} ppm`;$('scatter-value').textContent=`${$('scatter').value}%`;$('eccentricity-value').textContent=Number($('eccentricity').value).toFixed(4);$('tilt-value').textContent=Number($('tilt').value).toFixed(2)+'°';$('radius-value').textContent=$('radius').value+' km';
 }
@@ -19,8 +19,9 @@ function initialize(restore=false){
  worker=new Worker(new URL('./globe-worker.mjs',import.meta.url),{type:'module'});
  worker.onmessage=({data})=>{
   if(data.type==='error'){pause();busy=false;ready=false;status(`Simulation paused: ${data.message}. Reset to retry.`);$('stage-label').textContent='SIMULATION PAUSED';return;}
+  if(data.type==='loading'){status('Loading local SpeedyWeatherAssets surface maps…');return;}
   if(data.type==='progress'){status(`Preparing reference climate · ${Math.round(data.progress*100)}%`);return;}
-  if(data.type==='grid'){grid=sphericalGrid(data.spacing);renderer.setGrid(grid,data.kinds);$('tile-hint').textContent=`${data.count.toLocaleString()} cells · ~${data.spacing} km`;return;}
+  if(data.type==='grid'){grid=sphericalGrid(data.spacing);renderer.setGrid(grid,data.kinds,data.ice);$('tile-hint').textContent=`${data.count.toLocaleString()} cells · ~${data.spacing} km · asset inputs`;return;}
   if(data.type==='inspection'){showInspection(data.inspection);return;}
   if(data.fields){
    if(fields)worker.postMessage({type:'recycle',buffer:fields.buffer},[fields.buffer]);
@@ -85,7 +86,12 @@ function showInspection(tile){
  if(!tile)return;selected=tile.index;$('inspect-lat').value=tile.latitude.toFixed(2);$('inspect-lon').value=tile.longitude.toFixed(2);
  $('inspector-summary').textContent=`${names[tile.kind]} · ${tile.latitude.toFixed(2)}° latitude, ${tile.longitude.toFixed(2)}° longitude · ${Math.round(tile.area).toLocaleString()} km²`;
  const list=$('tile-summary');list.replaceChildren();
- for(const [label,value] of [['Temperature',tile.temperature.toFixed(2)+'°C'],['Incoming light',tile.incoming.toFixed(1)+' W/m²'],['Current albedo',tile.albedo.toFixed(3)],['Diffuse fraction',(tile.diffuse*100).toFixed(1)+'%'],['Net flux',signed(tile.net)+' W/m²']]){const div=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;div.append(dt,dd);list.append(div);}
+ const rows= [['Model temperature',tile.temperature.toFixed(2)+'°C'],['Incoming light',tile.incoming.toFixed(1)+' W/m²'],['Current albedo',tile.albedo.toFixed(3)],['Diffuse fraction',(tile.diffuse*100).toFixed(1)+'%'],['Net flux',signed(tile.net)+' W/m²']];
+ if(tile.inputs){const p=tile.inputs;rows.push(['High / low vegetation',`${(p[0]*100).toFixed(1)} / ${(p[1]*100).toFixed(1)}%`],['High / low leaf area',`${p[7].toFixed(2)} / ${p[8].toFixed(2)} m²/m²`],['Elevation',`${p[6].toFixed(0)} m`],['Soil moisture · layers 1 / 2',`${p[2].toFixed(3)} / ${p[4].toFixed(3)} m³/m³`],['Temperature input · proxy',`${p[3].toFixed(2)} K`],['Snow · water equivalent',`${(p[9]*1000).toFixed(1)} mm`]);}
+ else rows.push(['Initial sea-ice concentration',`${(tile.ice*100).toFixed(1)}%`]);
+ rows.push(['Coastal interpolation',tile.boundaryFlags&2?'Nearest valid source location':tile.boundaryFlags&1?'Valid neighbours only':'Bilinear source samples']);
+ $('boundary-note').textContent=`SpeedyWeatherAssets climatology sampled for ${tile.boundary.date}. Inputs stay fixed. `+(tile.inputs?'Land-surface temperature supplies both soil-temperature inputs and the 2 m air-temperature proxy.':'Ocean albedo uses Jin with this prescribed fractional ice cover.');
+ for(const [label,value] of rows){const div=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;div.append(dt,dd);list.append(div);}
  $('tile-albedo').disabled=false;$('tile-scatter').disabled=false;$('restore-tile').disabled=false;
  if(document.activeElement!==$('tile-albedo'))$('tile-albedo').value=tile.override===null?'':tile.override.toFixed(3);
  if(document.activeElement!==$('tile-scatter'))$('tile-scatter').value=tile.factor.toFixed(3);

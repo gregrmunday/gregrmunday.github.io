@@ -82,7 +82,7 @@ for file, variable, scale in fields:
                          units={'snow': 'kg/m2', 'lst': 'K', 'sst': 'K'}.get(variable, '1')))
 climate = np.stack(planes, axis=1)  # month, field, south-to-north latitude, longitude
 (out / 'boundary-climate.bin').write_bytes(climate.tobytes())
-manifest = dict(source=SOURCE, commit=COMMIT, status='Prepared; runtime integration pending',
+manifest = dict(source=SOURCE, commit=COMMIT, status='Runtime initialisation inputs for learned C45 land and Jin ocean',
     licence='SpeedyWeatherAssets EUPL-1.2; vegetation derived from ERA5, CC BY 4.0',
     static=dict(width=width, height=height, origin=[-180, -90], rows='south-to-north', stride=6,
                 fields=['high_cover_u8_div255', 'low_cover_u8_div255', 'high_lai_u8_div32',

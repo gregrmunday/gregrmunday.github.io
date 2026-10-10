@@ -1,7 +1,7 @@
 {
   "source": "https://github.com/SpeedyWeather/SpeedyWeatherAssets/tree/e46cdef753200df4b1a9600ce0634ede80a6a19f/data/boundary_conditions",
   "commit": "e46cdef753200df4b1a9600ce0634ede80a6a19f",
-  "status": "Prepared; runtime integration pending",
+  "status": "Runtime initialisation inputs for learned C45 land and Jin ocean",
   "licence": "SpeedyWeatherAssets EUPL-1.2; vegetation derived from ERA5, CC BY 4.0",
   "static": {
     "width": 720,
