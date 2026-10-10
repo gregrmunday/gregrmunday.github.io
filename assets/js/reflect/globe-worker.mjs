@@ -1,6 +1,7 @@
 import { Planet } from './globe-model.mjs';
 import { loadBoundary } from './globe-boundary.mjs';
 let planet=null,generation=0,pool=[],selected=-1,surfaceRevision=0;
+const OUTPUT_HOURS=24;
 const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
 function snapshot(type='frame',brushEdit=false,completedHours=0) {
   let buffer=pool.pop();if(!buffer||buffer.byteLength!==planet.grid.count*20)buffer=new ArrayBuffer(planet.grid.count*20);
@@ -26,15 +27,18 @@ self.onmessage=async({data:message})=>{
     }
     if(!planet)return;
     if(message.type==='configure'){Object.assign(planet.config,message.config);planet.diagnose();snapshot();}
+    if(message.type==='snapshot'){planet.diagnose();snapshot(message.purpose==='export'?'export-ready':'frame');}
     if(message.type==='advance'){
-      const id=generation,model=planet,started=performance.now(),requested=Math.min(192,Math.max(0,Math.floor(message.hours)));let completed=0;
-      // Report partial completion instead of skipping hours or blocking edits
-      // behind a long accelerated batch. Diagnostics/frames run once per batch.
+      const id=generation,model=planet,started=performance.now(),untilOutput=OUTPUT_HOURS-model.hours%OUTPUT_HOURS;
+      const requested=Math.min(192,untilOutput,Math.max(0,Math.floor(message.hours)));let completed=0;
+      // Yield after a bounded CPU slice, but send only a tiny acknowledgement
+      // until a daily output boundary. Every intervening hour is integrated.
       for(;completed<requested;){if(id!==generation)return;model.step(false);completed++;if(performance.now()-started>=32)break;}
-      model.diagnose();snapshot('advanced',false,completed);
+      if(message.forceOutput||completed>0&&model.hours%OUTPUT_HOURS===0){model.diagnose();snapshot('advanced',false,completed);}
+      else postMessage({type:'advanced',completedHours:completed});
     }
     if(message.type==='edit'){planet.edit(message.edit);selected=message.edit.index??selected;snapshot('edited',Boolean(message.brushEdit));}
-    if(message.type==='inspect'){selected=message.index;postMessage({type:'inspection',inspection:planet.inspect(selected)});}
+    if(message.type==='inspect'){selected=message.index;planet.diagnose();snapshot('inspected');}
   }catch(error){
     // Rejected user edits leave the valid climate state running and release
     // brush backpressure; they must not disable the entire experiment.

@@ -170,14 +170,21 @@ retains the one-year-in-ten-seconds target, with new 1-hour/s and 6-hour/s choic
 and a **+1 hour** button. Every radiation and thermal step is one model hour;
 faster playback changes how many steps are requested, never their duration.
 Slower devices take longer than the selected target. The UTC clock and displayed
-fields show the batch endpoint; integrated radiation uses hourly midpoints.
+fields show the last published endpoint; integrated radiation uses hourly midpoints.
+Automatic outputs occur at elapsed-hour multiples of 24. These are instantaneous
+endpoint snapshots, not daily averages. All intervening hours still contribute to
+FaIR and accumulated heat. Pausing, edits, inspection, CSV export and manual
+**+1 hour** steps force a fresh endpoint output. Daily snapshots sample the same
+UTC hour, so the displayed terminator does not sweep through a diurnal cycle;
+manual hour stepping exposes it.
 
 Display orientation makes one decorative viewing turn per model year. The actual
 day/night shading now uses the physical subsolar point in Earth coordinates in
 both WebGL and Canvas; orbiting the camera does not move the Sun geographically.
 Reduced-motion preferences disable automatic viewing rotation; selecting a
-painting/inspection tool also holds the camera orientation still. At fast
-playback the displayed terminator can alias; slower playback exposes the cycle.
+painting/inspection tool also holds the camera orientation still. Automatic
+viewing rotation advances only with daily outputs; there is no continuous redraw
+loop between them. Camera interaction redraws immediately.
 
 C45 coefficients, normalisation and noise quadrature are unchanged. Broadband
 BRDF coefficients are cached per land cell. Black-sky kernels use the hourly
@@ -316,11 +323,15 @@ are small per-cell arrays. Source data totals 2,251,152 bytes and is released af
 startup sampling and coefficient caching. No per-cell timestep history is retained.
 Five Float32 fields form each ~1 MiB transferable snapshot, returned to a small
 pool. At most one advance is in flight, with at most 192 requested hours and a
-32 ms processing budget checked after each hour. The worker reports completed
-hours, and the caller carries remaining demand forward. Diagnostics and frames
-are produced at batch endpoints (and monthly history boundaries), not retained
-for every hour. Automatic worker requests target at most 12.5 per second; display
-rotation is capped near 30 fps and needs no texture upload on the surface view.
+32 ms processing budget checked after each hour. Automatic batches also stop at
+the next 24-hour output boundary. Intermediate replies carry only a completed-hour
+count; the caller carries remaining demand forward without globe frames, endpoint
+radiation diagnostics, inspector rebuilding or graph updates. Full diagnostics and
+pooled frames are published at daily boundaries and explicit interaction requests;
+monthly scalar history remains independent. The scheduler uses requestAnimationFrame
+for bounded requests, with a 34 ms gap after a full output to cap automatic drawing
+below 30 fps. There is no automatic rendering between outputs, and surface mode
+still needs no texture upload for viewing rotation.
 Slower devices can run below the selected playback speed without skipping hourly
 physics. Hidden pages pause; restart/page exit terminates the worker.
 

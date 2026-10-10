@@ -143,3 +143,25 @@ radiation assertions concern a sunlit tile; it was not run. No new automated
 tests, browser runtime checks, performance benchmark or offline climate study
 were run. Hourly runtime performance and the approximate reference initialisation
 remain unverified by a runtime exercise.
+
+## Daily output with hourly physics completed
+
+The user selected 24-hour output spacing. Radiation, FaIR layers, regional thermal
+buckets and heat integration still advance hourly. Automatic batches stop at each
+24-hour boundary; partial CPU slices return a scalar completion acknowledgement
+without endpoint diagnostics or a globe frame. Daily outputs use existing pooled
+buffers. The main thread draws, uploads quantitative textures and updates graphs
+and inspector only for full outputs, with no idle scene redraw loop.
+
+Pause, edits, inspection, CSV export and manual +1 hour stepping force current
+endpoint snapshots. Export waits for that snapshot, so it cannot silently use
+stale daily metrics. The 34 ms post-output scheduler gap caps automatic drawing
+below 30 fps; one advance remains in flight and CPU slices remain bounded.
+Daily snapshots are instantaneous, not averages, and sample the same UTC hour;
+use manual stepping to inspect the diurnal cycle. Startup and hourly numerical
+equations are unchanged.
+
+Module syntax checks, static code/diff review and a Jekyll build are the checks
+for this update. No automated tests, browser exercise, performance benchmark or
+offline climate simulations were run. Reduced frame/diagnostic work is evident
+from the code paths; the runtime speed improvement has not been measured.

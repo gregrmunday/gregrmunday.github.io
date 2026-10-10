@@ -148,7 +148,12 @@ regional exponential decay are cached. Integrate all model hours even at fast
 playback: one request in flight, at most 192 requested hours, a 32 ms worker budget
 checked after each complete hour, and explicit completed-hour acknowledgements.
 Carry remaining requested hours forward; cap wall-clock demand rather than
-skipping physics. Diagnose displayed radiation at batch endpoints. Keep monthly
+skipping physics. Automatic batches stop at the next multiple of 24 elapsed
+hours. Between output boundaries send only a completed-hour acknowledgement;
+avoid diagnostics, frame packing, texture/graph/inspector updates and rendering.
+Publish full endpoint snapshots every 24 hours, with immediate exceptions for
+pause, edits, inspection, export and manual hour stepping. CSV must request fresh
+state rather than exporting the last daily output. Keep monthly
 scalar history and an 8766-value annual flux ring, not per-cell hour histories.
 
 Startup uses 48 seasonal samples with 24 hourly solar phases, reusing daily-mean
@@ -157,3 +162,9 @@ This is not a full annual hourly periodic solution or historical calibration.
 Slower devices may take longer than the playback target. The +1 hour button and
 slow playback must retain the same hourly physics. Do not run the cancelled
 offline simulations without a new request.
+
+Automatic viewing rotation/drawing advances only on full outputs, with a 34 ms
+minimum scheduler gap afterwards to cap automatic drawing below 30 fps. Keep
+requestAnimationFrame for scheduling only; do not restore continuous scene redraws
+between daily outputs. Daily snapshots sample the same UTC hour and cannot show
+the daily terminator sweep; explain this and retain immediate +1 hour stepping.
