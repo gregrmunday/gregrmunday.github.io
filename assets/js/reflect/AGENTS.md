@@ -35,7 +35,7 @@ The main `/reflect/` route now hosts the spherical energy balance model.
 The terrain implementation above remains at `/reflect/terrain/`. See
 `scripts/REFLECT.md` for the planet model and `REFLECT_TERRAIN.md` for terrain.
 
-Planet modules use the `globe-` prefix. Its persistent worker integrates daily
+Planet modules use the `globe-` prefix. Its persistent worker integrates hourly
 steps and returns pooled Float32 snapshots; terminate it when replacing the
 experiment or leaving the page. Keep at most one advance in flight and cap
 batches, so controls can interrupt computation. Store bounded scalar history,
@@ -50,7 +50,7 @@ reference; never recalibrate an experiment's forcing away.
 Integrate three global deterministic FaIR thermal responses using ECS 2.5/3/4°C
 per doubling. Feed CO₂ forcing plus area-weighted absorbed-shortwave change
 into the three-layer equations, never the evolving imbalance itself. Use the
-cached daily matrix exponential; keep the approximate regional pattern separate
+cached hourly matrix exponential; keep the approximate regional pattern separate
 and adjust its mean to the global FaIR result. Label the envelope as sensitivity scenarios,
 not a transient probabilistic confidence interval. Show perturbation imbalance
 and total seasonal imbalance distinctly. Local albedo edits must preserve the
@@ -132,3 +132,28 @@ stays unchanged. Bounds are exploration guardrails, not validated training range
 See `scripts/REFLECT_NEXT.md` for the remaining sweeps and control comparisons.
 
 The user stopped offline simulations; do not resume them without a new request.
+
+## Hourly radiation and integration
+
+Radiation uses each tile's latitude, longitude and hourly midpoint zenith angle.
+Greenwich solar noon is fixed at 12 UTC (no equation of time); direct sunlight is
+zero on the night side, and area-weighted incoming power is corrected to S/4.
+Evaluate C45 black-sky kernels at that angle and clamp after mixing direct/diffuse
+power. Use the bounded 4097-point wind-specific Jin lookup, retaining only
+reference and current wind tables. Earth-coordinate shader/fallback lighting must
+use the same subsolar point; annual camera spin is decorative.
+
+Use integer elapsed hours and derive elapsed days. Hourly FaIR transitions and
+regional exponential decay are cached. Integrate all model hours even at fast
+playback: one request in flight, at most 192 requested hours, a 32 ms worker budget
+checked after each complete hour, and explicit completed-hour acknowledgements.
+Carry remaining requested hours forward; cap wall-clock demand rather than
+skipping physics. Diagnose displayed radiation at batch endpoints. Keep monthly
+scalar history and an 8766-value annual flux ring, not per-cell hour histories.
+
+Startup uses 48 seasonal samples with 24 hourly solar phases, reusing daily-mean
+scratch storage, plus an approximate periodic startup-day thermal perturbation.
+This is not a full annual hourly periodic solution or historical calibration.
+Slower devices may take longer than the playback target. The +1 hour button and
+slow playback must retain the same hourly physics. Do not run the cancelled
+offline simulations without a new request.

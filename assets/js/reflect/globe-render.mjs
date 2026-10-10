@@ -2,7 +2,7 @@ import { cellAt, clamp, TAU } from './globe-model.mjs';
 const colors=[[38,106,143],[173,215,226],[53,112,84],[145,172,96],[181,148,103],[229,236,228]];
 const VERTEX=`attribute vec2 position;varying vec2 uv;void main(){uv=position;gl_Position=vec4(position,0.,1.);}`;
 const FRAGMENT=`precision highp float;
-varying vec2 uv;uniform sampler2D map;uniform vec2 viewport;uniform float yaw,pitch,zoom,declination,season,mode,selectedLat,selectedLon,brushRadius,hasSelection;
+varying vec2 uv;uniform sampler2D map;uniform vec2 viewport;uniform float yaw,pitch,zoom,declination,subsolarLongitude,mode,selectedLat,selectedLon,brushRadius,hasSelection;
 const float PI=3.14159265359;
 vec3 rotate(vec3 n){float c=cos(pitch),s=sin(pitch);n=vec3(n.x,c*n.y+s*n.z,-s*n.y+c*n.z);c=cos(yaw);s=sin(yaw);return vec3(c*n.x+s*n.z,n.y,-s*n.x+c*n.z);}
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -16,8 +16,8 @@ void main(){
  vec3 cameraNormal=vec3(p/radius,sqrt(max(0.,1.-r*r))),normal=rotate(cameraNormal);
  float lat=asin(clamp(normal.y,-1.,1.)),lon=atan(normal.x,normal.z);
  vec4 tex=texture2D(map,vec2((lon+PI)/(2.*PI),(lat+PI/2.)/PI));
- vec3 sun=normalize(vec3(-.75, sin(declination),.65*cos(declination)));
- float light=dot(cameraNormal,sun),shade=.42+.58*smoothstep(-.16,.65,light);
+ vec3 sun=vec3(cos(declination)*sin(subsolarLongitude),sin(declination),cos(declination)*cos(subsolarLongitude));
+ float light=dot(normal,sun),shade=.18+.82*smoothstep(-.03,.65,light);
  vec3 color=tex.rgb;
  if(mode<.5){
    float kind=floor(tex.a*255./32.+.1);float detail=hash(floor(vec2(lon,lat)*1000.));
@@ -45,7 +45,7 @@ export class GlobeRenderer {
     if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(this.program));gl.deleteShader(vs);gl.deleteShader(fs);gl.useProgram(this.program);
     const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
     const pos=gl.getAttribLocation(this.program,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
-    this.uniforms={};for(const key of ['map','viewport','yaw','pitch','zoom','declination','season','mode','selectedLat','selectedLon','brushRadius','hasSelection'])this.uniforms[key]=gl.getUniformLocation(this.program,key);
+    this.uniforms={};for(const key of ['map','viewport','yaw','pitch','zoom','declination','subsolarLongitude','mode','selectedLat','selectedLon','brushRadius','hasSelection'])this.uniforms[key]=gl.getUniformLocation(this.program,key);
     this.texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   }
   setGrid(grid,kinds,ice) {
@@ -91,7 +91,7 @@ export class GlobeRenderer {
     if(!this.fields)return;
     if(!this.gl){this.drawFallback(orbital);return;}
     const gl=this.gl,u=this.uniforms;gl.useProgram(this.program);gl.uniform2f(u.viewport,this.canvas.width,this.canvas.height);
-    for(const [key,value] of Object.entries({yaw:this.yaw+this.spin,pitch:this.pitch,zoom:this.zoom,declination:orbital?.declination||0,season:orbital?.longitude||0,mode:this.mode==='surface'?0:1,selectedLat:this.selection?.latitude||0,selectedLon:this.selection?.longitude||0,brushRadius:this.selection?.radius||.018,hasSelection:this.selection?1:0}))gl.uniform1f(u[key],value);
+    for(const [key,value] of Object.entries({yaw:this.yaw+this.spin,pitch:this.pitch,zoom:this.zoom,declination:orbital?.declination||0,subsolarLongitude:orbital?.subsolarLongitude||0,mode:this.mode==='surface'?0:1,selectedLat:this.selection?.latitude||0,selectedLon:this.selection?.longitude||0,brushRadius:this.selection?.radius||.018,hasSelection:this.selection?1:0}))gl.uniform1f(u[key],value);
     gl.uniform1i(u.map,0);gl.drawArrays(gl.TRIANGLES,0,6);
   }
   drawFallback(orbital) {
@@ -109,13 +109,12 @@ export class GlobeRenderer {
         this.rays[i]=cellAt(this.grid,Math.asin(clamp(ny,-1,1)),Math.atan2(nx,z));this.normals[i*3]=nx;this.normals[i*3+1]=ny;this.normals[i*3+2]=z;
       }
     }
-    const cy=Math.cos(this.yaw+this.spin),sy=Math.sin(this.yaw+this.spin),cp=Math.cos(this.pitch),sp=Math.sin(this.pitch);
-    const pixels=this.image.data,declination=orbital?.declination||0,sun=[-.75,Math.sin(declination),.65*Math.cos(declination)],norm=Math.hypot(...sun);for(let j=0;j<3;j++)sun[j]/=norm;
+    const pixels=this.image.data,declination=orbital?.declination||0,longitude=orbital?.subsolarLongitude||0,sun=[Math.cos(declination)*Math.sin(longitude),Math.sin(declination),Math.cos(declination)*Math.cos(longitude)];
     let selectedNormal=null;if(this.selection){const p=this.selection;selectedNormal=[Math.cos(p.latitude)*Math.sin(p.longitude),Math.sin(p.latitude),Math.cos(p.latitude)*Math.cos(p.longitude)];}
     for(let i=0;i<this.rays.length;i++){
       const index=this.rays[i],j=i*4,y=Math.floor(i/iw);
       if(index<0){pixels[j]=13;pixels[j+1]=31+8*(1-y/ih);pixels[j+2]=37+6*(1-y/ih);pixels[j+3]=255;continue;}
-      const k=i*3,nx=this.normals[k],ny=this.normals[k+1],nz=this.normals[k+2],cameraX=cy*nx-sy*nz,intermediate=sy*nx+cy*nz,cameraY=cp*ny-sp*intermediate,cameraZ=sp*ny+cp*intermediate,dot=cameraX*sun[0]+cameraY*sun[1]+cameraZ*sun[2],light=this.mode==='surface'?.42+.58*clamp((dot+.16)/.81):.95;
+      const k=i*3,nx=this.normals[k],ny=this.normals[k+1],nz=this.normals[k+2],dot=nx*sun[0]+ny*sun[1]+nz*sun[2],light=this.mode==='surface'?.18+.82*clamp((dot+.03)/.68):.95;
       let ring=false;if(selectedNormal){const distance=Math.acos(clamp(nx*selectedNormal[0]+ny*selectedNormal[1]+nz*selectedNormal[2],-1,1));ring=Math.abs(distance-this.selection.radius)<.005;}
       for(let c=0;c<3;c++)pixels[j+c]=ring?[245,215,143][c]:this.cellColors[index*4+c]*light;
       pixels[j+3]=255;

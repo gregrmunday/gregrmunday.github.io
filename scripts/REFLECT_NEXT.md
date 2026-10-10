@@ -122,3 +122,24 @@ Desktop layouts fit 1440×900 and 1280×720 without page or control scrolling. V
 short desktop windows retain an internal control scrollbar; mobile layouts scroll
 vertically without horizontal overflow. This was a browser/interface review, not
 the cancelled offline control-simulation study.
+
+## Hourly timestep update completed
+
+Runtime radiation now resolves longitude and solar time at each hour's midpoint,
+with C45 angular kernels and Jin reflection at that angle. FaIR and local thermal
+buckets use cached one-hour transitions. Integer hours avoid floating-point clock
+drift; the annual flux tracker uses a bounded hourly ring. Physical day/night
+shading, a UTC clock, +1 hour and slower playback choices expose the diurnal cycle.
+
+Requests are bounded by count and processing time, with explicit completed-hour
+acknowledgements, no skipped model hours, cached geometry/Jin tables, pooled
+frames and endpoint diagnostics. The annual viewing rotation remains decorative.
+Startup samples 48 seasons × 24 hourly solar phases and solves seasonal-plus-
+diurnal thermal initial conditions approximately, without a historical spin-up.
+
+Module syntax, static code/diff review and Jekyll build are the checks for this
+update. The existing surface-regression fixture starts at noon so its Amazon
+radiation assertions concern a sunlit tile; it was not run. No new automated
+tests, browser runtime checks, performance benchmark or offline climate study
+were run. Hourly runtime performance and the approximate reference initialisation
+remain unverified by a runtime exercise.

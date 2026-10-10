@@ -143,36 +143,47 @@ recalculate radiation immediately, preserving thermal states, integrated heat,
 time and bounded climate history. The reference annual and seasonal climate
 are never recalibrated to follow an edited surface.
 
-## Orbit, daily radiation and ocean reflection
+## Orbit, hourly radiation and ocean reflection
 
 Kepler's equation sets orbital speed and distance. Perihelion is near 3 January,
 with fixed solar longitude 282.94°, eccentricity 0.0167, tilt 23.44° and period
 365.2422 days. Changing eccentricity retains that period. Insolation is 1361/r²
-W/m². Latitude-dependent daily means include polar day/night; a small spatial
-quadrature correction gives exact global incoming S(r)/4.
+W/m². One-hour steps evaluate each cell at the midpoint solar zenith angle,
+including polar day/night. The subsolar longitude is `π − 2π × UTC_day_fraction`:
+Greenwich solar noon is fixed at 12 UTC; the equation of time is omitted. A small
+spatial quadrature correction makes global incoming exactly S(r)/4 while leaving
+direct sunlight zero on the night side.
 
 Regional albedo edits are weighted by their actual incoming sunlight and spherical
-cell areas. C45's black-sky reflection uses radiation-weighted solar-zenith kernels
-across the sunlit day; the diffuse component uses white-sky reflection. Latitude
-and season therefore affect both the available sunlight and angular reflection.
-Longitude does not change daily solar geometry at a given latitude, but sourced
-land inputs and spatial scattering vary with longitude. The visible annual globe
-rotation does not set physical irradiance. A regional forcing comparison is
+cell areas. C45's black-sky reflection uses each hour's solar-zenith kernels;
+the diffuse component uses white-sky reflection. Latitude, longitude, UTC hour
+and season therefore affect the available sunlight and angular reflection.
+Longitude shifts local solar time, so an edit's instantaneous forcing follows its
+region into daylight and night. Sourced land inputs and scattering also vary
+geographically. The visible annual viewing turn does not set physical irradiance.
+A regional forcing comparison is
 meaningful; the approximate regional temperature map is not a resolved circulation
 or geographically calibrated climate-impact model.
 
-The calendar begins in the visitor's current UTC season. Default playback is
-one model year in ten seconds. Display rotation makes one turn per model year,
-with ray-cast lighting kept in viewing coordinates. This is decorative: the
-physics averages 24-hour rotation and is independent of display orientation.
-Reduced-motion preferences disable automatic display rotation; selecting a
-painting/inspection tool also holds the globe still.
+The calendar begins in the visitor's current UTC season at 12 UTC. Playback
+retains the one-year-in-ten-seconds target, with new 1-hour/s and 6-hour/s choices
+and a **+1 hour** button. Every radiation and thermal step is one model hour;
+faster playback changes how many steps are requested, never their duration.
+Slower devices take longer than the selected target. The UTC clock and displayed
+fields show the batch endpoint; integrated radiation uses hourly midpoints.
+
+Display orientation makes one decorative viewing turn per model year. The actual
+day/night shading now uses the physical subsolar point in Earth coordinates in
+both WebGL and Canvas; orbiting the camera does not move the Sun geographically.
+Reduced-motion preferences disable automatic viewing rotation; selecting a
+painting/inspection tool also holds the camera orientation still. At fast
+playback the displayed terminator can alias; slower playback exposes the cycle.
 
 C45 coefficients, normalisation and noise quadrature are unchanged. Broadband
-BRDF coefficients are cached per land cell. Eight-point Gauss–Legendre daylight
-quadrature averages irradiance-weighted black-sky kernels by latitude; diffuse
-reflection uses white-sky kernels. Clamping the averaged land albedo rather than
-each individual solar angle is a daily averaging approximation.
+BRDF coefficients are cached per land cell. Black-sky kernels use the hourly
+zenith angle; diffuse reflection uses white-sky kernels. Direct/diffuse powers
+are blended before clamping the final broadband albedo, following the supplied
+C45 formulation. No daylight average replaces these runtime kernels.
 
 Jin et al. (2011) ocean reflection preserves the coefficients and defaults of
 SpeedyWeather `gm/albedo`, commit `b5eaa01a76d1ce6b083592a1e4c94f419385c77c`:
@@ -187,8 +198,10 @@ which expects an external roughness field, this app diagnoses the RMS slope
 using Cox–Munk σ = sqrt(0.003 + 0.00512 U). Whitecaps occupy
 clamp(2.95e-6 U^3.52, 0, 1). Volume scattering and foam are included in both direct
 and diffuse components, then mixed with ice and bounded after the final mixture.
-Eight-point daylight quadrature averages direct ocean albedo before mixing.
-This is a broadband daily approximation, not a spectral ocean or wave model.
+Direct ocean reflectivity is linearly interpolated from a 4097-point cosine-zenith
+lookup evaluated with the unchanged Jin equations at the prescribed wind. Keep
+at most two tables (reference wind and current wind). This bounded numerical
+approximation reduces per-cell exponentials; it is not a spectral wave model.
 User albedo overrides replace both direct and diffuse reflectivities.
 
 ## Gaussian atmospheric scattering
@@ -249,8 +262,10 @@ The small grid quadrature offset is removed so the prescribed annual global
 baseline is exactly 14°C. This value is an illustrative model reference, not a
 calibration to observed contemporary global temperature.
 
-Reference annual absorbed sunlight is estimated with 48 samples. The periodic
-seasonal state is solved analytically at startup, then integrated daily:
+Reference annual absorbed sunlight is estimated with 48 seasonal samples, each
+averaging 24 hourly solar phases using the same instantaneous reflection and
+scattering as runtime. One daily-mean buffer is reused; no radiation archive is
+retained. The periodic seasonal state is solved analytically at startup:
 
 ```
 Cs dTseason/dt = ASRreference − annualMeanASRreference − λcentral Tseason
@@ -262,9 +277,14 @@ area mean is removed and replaced by FaIR's central global surface anomaly.
 The **seasonal regional response is centred in the same way**: its area mean
 is removed, and a separate central three-layer FaIR response supplies the global
 reference season. Its forcing is areaMean(ASRreference) minus the reference
-annual mean. The 48 annual radiation samples also initialise this periodic
-three-layer state by solving `(I − Ayear) Tstart = byear`; no multi-year spin-up
-or retained per-cell history is needed. It then uses cached daily transitions.
+annual mean. The 48 seasonal daily means initialise this periodic three-layer
+state by solving `(I − Ayear) Tstart = byear`. Another 24 startup-hour samples
+supply an additive periodic diurnal perturbation to the local buckets and global
+reference layers, with its daily mean removed. Seasonal-plus-diurnal initialisation
+is approximate, not a full annual hourly periodic solution or historical spin-up.
+Thereafter every global FaIR and local bucket step uses one hour. Hourly FaIR
+transitions and local thermal decay factors are cached. No multi-year spin-up or
+per-cell history is retained.
 
 The global absolute temperature is exactly 14°C plus the global reference
 season and central CO₂/albedo response. The map, inspector and scalar tracker
@@ -277,23 +297,31 @@ reference seasonal storage. Heat change is the exact change in reference seasona
 FaIR heat plus the central perturbation FaIR layers' heat content, converted to ZJ.
 Local reference fluxes use the centred seasonal pattern and global FaIR season,
 so their area mean agrees with the global reference imbalance. The trailing
-366-day mean uses integrated net fluxes. Monthly scalar history is capped at
+one-model-year mean uses integrated hourly net fluxes in an 8766-slot scalar
+ring, with the oldest sample fractionally weighted to cover 365.2422 days.
+Monthly scalar history is capped at
 1,200 records; CSV exports use ECS-envelope labels and append the current state.
 No dynamic heat transport, ice feedback, interactive clouds or carbon cycle is
 included. These assumptions are also visible in the app's “How it works” dialog.
 
 ## Lightweight implementation
 
-Numerical state occupies roughly 11 MiB at 100 km, excluding transient graph
-construction, browser overhead and render buffers. FaIR adds only twelve thermal
+The previous daily numerical state occupied roughly 11 MiB at 100 km. Hourly
+geometry, cached thermal decay, longitude trigonometry, bounded ocean lookups and
+the scalar annual ring add about 2.5 MiB in the worker, plus about 0.4 MiB for
+longitude trigonometry on the main thread. These estimates exclude transient graph
+construction, browser overhead, startup scratch buffers and render buffers. FaIR adds only twelve thermal
 states and four small cached matrices. C45 inputs and BRDF coefficients are retained only for land cells; fractional ice and coastal flags
 are small per-cell arrays. Source data totals 2,251,152 bytes and is released after
 startup sampling and coefficient caching. No per-cell timestep history is retained.
 Five Float32 fields form each ~1 MiB transferable snapshot, returned to a small
-pool. At most one advance is in flight, with batches capped at eight requested
-days. Worker snapshots and DOM updates target at most 12 per second; display
+pool. At most one advance is in flight, with at most 192 requested hours and a
+32 ms processing budget checked after each hour. The worker reports completed
+hours, and the caller carries remaining demand forward. Diagnostics and frames
+are produced at batch endpoints (and monthly history boundaries), not retained
+for every hour. Automatic worker requests target at most 12.5 per second; display
 rotation is capped near 30 fps and needs no texture upload on the surface view.
-Slower devices can run below the selected playback speed without skipping daily
+Slower devices can run below the selected playback speed without skipping hourly
 physics. Hidden pages pause; restart/page exit terminates the worker.
 
 Native WebGL uses one shader and a 720×360 texture. Pixel count is capped at

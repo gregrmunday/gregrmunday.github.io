@@ -6,7 +6,7 @@ import { Planet, cellAt } from '../assets/js/reflect/globe-model.mjs';
 const sourceInputs=[.9,.1,.30123,290.123,.31234,288.456,123.45,4.1234,1.2345,.00001234,291.234];
 const boundary={source:'regression fixture',commit:'fixture',flags:0,isLand:()=>true,
   landInputs:(latitude,longitude,month,fraction,target)=>target.set(sourceInputs)};
-const planet=new Planet({spacing:400,co2:280,boundary});
+const planet=new Planet({spacing:400,co2:280,startHour:12,boundary});
 planet.diagnose();
 const index=cellAt(planet.grid,-5*Math.PI/180,-62*Math.PI/180),offset=planet.landSlots[index]*11;
 const original=planet.landInputs.slice(offset,offset+11),reference=planet.referenceCoefficients.slice();
