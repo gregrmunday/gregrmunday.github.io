@@ -1,235 +1,46 @@
-# Reflectance development
+# Reflectance
 
-Reflectance is a static browser experiment at `/reflect/`. Page markup is in
-`_pages/reflect.html`, styles in `assets/css/reflect.css`, and documentation in
-`scripts/REFLECT.md`.
+**Purpose:** demonstrate learned land-albedo sensitivity and its global climate response.
+**Ethos:** explicit science, clear controls, lightweight native code, bounded memory;
+optimize computation/rendering without weakening physics. Read the detailed docs below.
 
-## Ethos
+## Implemented
 
-Keep the project lightweight: native ES modules, Canvas 2D, typed arrays and one
-short-lived Web Worker. Avoid frameworks, remote assets, image textures and
-runtime dependencies unless a concrete benefit justifies their cost.
+- ~100 km sphere; SpeedyWeatherAssets surfaces; eccentric orbit and hourly sunlight.
+- Learned land albedo + Jin (2011) ocean/sea ice; monthly CACK land-albedo
+  perturbations → area-weighted TOA forcing → calibrated three-layer FaIR.
+- Matched control, response maps, eleven-input editor/sensitivity previews,
+  Gaussian painting, undo/redo, saved setups, CSV and an attributed SVG diagram.
+- Fixed dashboard without main-page/panel scrolling; details use native dialogs.
+  Painting/inspection stays evenly lit; physical sunlight is unchanged.
 
-- Preserve the supplied SpeedyWeather learned albedo coefficients and quadrature. See
-  `scripts/test_reflect.mjs` for independent Julia reference values.
-- Calculate radiation at the full selected grid resolution (up to 256 × 256).
-  Adapt drawing detail to screen pixels rather than reducing physics resolution.
-- Cache angle-independent BRDF coefficients and static geometry/Path2D textures.
-  Reuse frame and shadow buffers; never retain a per-cell history for every step.
-- Integrate 1440 midpoint intervals independently of playback speed. Terminate
-  workers after transferring results, and invalidate stale computations on edits.
-- Cap canvas pixel count and device pixel ratio. Keep animation and DOM update
-  rates separate. Release object URLs after CSV downloads.
-- Procedural surface objects are decorative; the shadow model uses terrain
-  heights, not vegetation geometry. Keep scientific assumptions visible.
-- Fit desktop controls, landscape, irradiance gauges and energy totals in one
-  viewport. Use dialogs for detailed inputs. Keep the main page fixed on small screens too;
-  only oversized dialog contents may scroll.
+## Preserve
 
-The terrain brush applies a bounded Gaussian lift over a circular neighborhood.
-Its peak is 100 m, its radius scales with grid size, and its edge reaches zero.
-Painting changes physical inputs and recalculates the day.
+- Say **learned albedo**; retain equations, coefficients, licences and attribution.
+- Keep original surfaces/reference immutable and thermal history through edits.
+  Control shares global settings; use spherical area weights, FaIR efficacy and
+  centred regional patterns. Feed forcing into FaIR, not evolving imbalance.
+- CACK screens land perturbations independently of scattering; never double-screen.
+  Gaussian scattering conserves sunlight and does not represent interactive clouds.
+- Label equilibrium startup, 14°C prescribed baseline, temperature proxies,
+  approximate hourly kernels, unknown training ranges and sensitivity scenarios.
+- Validate partial edits; preserve drafts, cover limits and selection. Saved
+  setups start new runs. Keep raw CACK/NetCDF out of Git and the published site.
 
-## Spherical model (October 2026)
+## Performance
 
-The main `/reflect/` route now hosts the spherical energy balance model.
-The terrain implementation above remains at `/reflect/terrain/`. See
-`scripts/REFLECT.md` for the planet model and `REFLECT_TERRAIN.md` for terrain.
+- Native ES modules, typed arrays, one worker, WebGL/Canvas; no runtime libraries.
+- Integrate every hour, output every 24; bounded batches/history/undo/previews,
+  pooled frames, one advance/paint request in flight and stale-work cancellation.
+- Reuse illumination for albedo edits; scattering edits retain the full solve.
+- Optional 265-byte Float64 WASM scattering helper: fixed heap, JS fallback,
+  ~2.1× local operator speedup (not a browser-wide claim); offline compiler only.
+- Coalesce drawing independently of physics; cache BRDFs/textures, cap pixels/DPR,
+  pause hidden pages and release workers/buffers. Never archive per-hour globe frames.
 
-Planet modules use the `globe-` prefix. Its persistent worker integrates hourly
-steps and returns pooled Float32 snapshots; terminate it when replacing the
-experiment or leaving the page. Keep at most one advance in flight and cap
-batches, so controls can interrupt computation. Store bounded scalar history,
-not globe frames. The default reduced spherical grid has 50,932 cells at ~100 km.
+## Documentation
 
-Scattering means redistribution of sunlight, not heat diffusion or clouds.
-Its Gaussian approximation must preserve area-weighted power and positivity,
-including across longitude seams and polar row changes. All means use true
-spherical cell areas. Changes to orbit, CO₂ or albedo must retain the unchanged
-reference; never recalibrate an experiment's forcing away.
-
-Integrate three global deterministic FaIR thermal responses using ECS 2.5/3/4°C
-per doubling. Feed CO₂ forcing plus area-weighted absorbed-shortwave change
-into the three-layer equations, never the evolving imbalance itself. Use the
-cached hourly matrix exponential; keep the approximate regional pattern separate
-and adjust its mean to the global FaIR result. Label the envelope as sensitivity scenarios,
-not a transient probabilistic confidence interval. Show perturbation imbalance
-and total seasonal imbalance distinctly. Local albedo edits must preserve the
-experiment's temperatures and history. The baseline and physical learned albedo inputs are
-prescribed; SpeedyWeatherAssets supplies the mask, vegetation, soil fields,
-snow and fractional ice. Keep temperature proxies and coarse coastal fallbacks
-explicit; source climatologies are not current observations. Preserve the Jin ocean coefficients from the pinned
-SpeedyWeather gm/albedo source, its attribution and EUPL licence. Diagnose the
-roughness input explicitly from Cox–Munk wind, and clamp the final mixture.
-
-Native WebGL draws the globe, with a cached low-resolution ray-cast Canvas
-fallback. Keep graphics and physics independent, cap pixel buffers, and draw
-at most 30 times per second during annual display rotation; stop on pause, hidden
-pages, editing or reduced-motion preference. Static surface textures need one
-upload; only quantitative map modes change each snapshot. Autostart uses a dated
-NOAA snapshot from co2-baseline.mjs and today's season. Never present that cached
-value as a live feed, or the equilibrium initialisation as historical climate.
-The future albedo game should use
-this same model and keep its educational assumptions visible.
-
-Centre both regional seasonal temperatures and regional perturbations before
-adding their respective global FaIR responses. Different local land/ocean lags
-must not introduce an extra global seasonal temperature. The unchanged reference
-season uses a fourth, central FaIR response with a periodic initial state; its
-forcing is global reference ASR minus its annual mean. Global net flux and heat
-storage must use these global thermal states, not the uncentred local buckets.
-The prescribed annual 280 ppm baseline is exactly 14°C, and is not observational
-calibration. Keep the temperature map, inspector and tracker consistent.
-
-## Geographic surface initialisation
-
-The pinned SpeedyWeatherAssets boundary binaries are now connected through
-`globe-boundary.mjs`. See `scripts/REFLECT.md` for active behaviour and
-`REFLECT_NEXT.md` for checkpoint status. Keep learned albedo for land; the prescribed
-albedo asset must not replace it. Preserve the two-layer swl1/swl2 convention,
-snow mass-to-water-depth conversion, monthly missing masks, nonuniform latitudes,
-longitude wrap and explicitly documented soil/air-temperature proxies.
-
-Sample climatologies for the startup date and hold the physical input fields
-fixed unless the user explicitly paints or edits them. An evolving monthly climatology would require matching changes in both
-reference and experiment. Retain learned albedo inputs only for land cells and release the
-source buffers after caching. Surface classification is visual; fractional sea ice
-must remain continuous in the Jin radiation mixture.
-
-## Physical surface brushes
-
-The planet's “04 Paint a response” panel edits land cover, leaf area, elevation
-and snow as learned albedo inputs. Original Float32 inputs and reference BRDF coefficients
-are separate bounded arrays; never modify them when painting. Recompute learned albedo
-only for changed land tiles, clear manual albedo overrides in physical brush
-footprints, and restore original inputs and coefficients without resetting
-climate history. Vegetation conversion preserves total cover; LAI targets are
-explicit illustrative presets. No carbon release or ecosystem feedback is implied.
-
-Visit only brush-intersecting latitude rows, handle spherical seams and poles,
-and use a bounded Gaussian footprint. Coalesce pointer samples with one paint
-request in flight. Transfer visual classifications only on surface changes and
-invalidate the cached surface texture then; ordinary rotation remains cached.
-Preserve unsaved tile-editor values during climate snapshots. Enforce cover
-totals at most one and keep ocean tiles out of the land editor.
-
-Send partial land-input patches, preserving the exact unedited Float32 values.
-An unchanged Apply must preserve prescribed albedo and radiation. Validate edits
-before mutation and recover rejected edits without discarding the climate state.
-Only explicit selection requests may change the selected tile; stale snapshots
-must not overwrite the selection or unfinished coordinate drafts. Flush the last
-distinct brush point on pointer-up while retaining one request in flight.
-
-The project's purpose is to demonstrate learned land-albedo influence on global
-climate and sensitivity to each physical input. Prioritise complete learned albedo input
-controls, one-input sweeps and an unchanged control with edited-minus-control
-temperature/forcing readouts. Keep these analyses bounded and distinguish the
-surface experiment from warming relative to the 280 ppm reference. The tile
-editor now exposes all eleven learned albedo inputs independently; moisture uses m³/m³ and
-temperature uses kelvin. Temperature edits affect learned albedo reflection only and remain
-prescribed during climate integration. Detect changes and restore originals across
-all eleven fields, including soil and air inputs even when surface classification
-stays unchanged. Bounds are exploration guardrails, not validated training ranges.
-See `scripts/REFLECT_NEXT.md` for the remaining sweeps and control comparisons.
-
-The user stopped offline simulations; do not resume them without a new request.
-
-## Matched control, kernels and sensitivity explorer
-
-Call the equations **learned albedo**, never the obsolete complexity label.
-Preserve their supplied numerical expressions and constants.
-
-The headline result is experimental surface minus an unchanged matched control.
-Control and experiment share CO₂, orbit, wind and global atmospheric settings;
-original physical inputs and local scattering remain unchanged in the control.
-Both keep their own three global FaIR states. Edits/undo must preserve thermal
-history; never re-equilibrate temperatures after a brush change.
-
-Default land-albedo forcing uses the prescribed monthly CACK CM derivative.
-CACK sets the conversion from albedo change to TOA forcing, independently of
-the illustrative scattering dial. Evaluate original and edited reflection under
-the same illumination, replace the idealised albedo term with CACK, and avoid
-double transmission/screening. Its hourly solar weighting is approximate; it
-does not supply hourly cloud observations. Keep the source-year, coarse grid,
-polar-night policy and omitted uncertainty visible in the scientific notes.
-The raw `CACKv1.0/` directory and all NetCDF inputs must remain excluded from
-both Git and the Jekyll output. Only the approved 388,800-byte monthly derivative
-and its provenance can be published. Keep at most two sampled kernel planes.
-
-Retain published FaIR thermal parameters jointly: feedback, capacities, exchanges
-and efficacy. Keep the efficacy term consistent in imbalance and heat accounting.
-The three selected thermal sets are sensitivity scenarios, not the full posterior
-ensemble. Preserve pinned provenance and the reproducible selection script.
-
-The one-input preview snapshots its inputs and resolves 24 hourly solar phases,
-without advancing climate state. Cap it at 4096 land cells and 25 curve points,
-release scratch arrays afterwards and cancel stale work after edits/configuration.
-Cover bounds must be valid in every regional tile. Manual overrides are excluded
-from the learned preview. Conditional equilibrium estimates repeat one day's
-forcing indefinitely and must not be labelled as transient climate forecasts.
-
-Daily radiation diagnostics are sums over the last completed 24 integrated hours,
-labelled with their interval. Maps remain instantaneous. Retain bounded scalar
-history and annual forcing rings, not per-hour cell snapshots. Eight Float32 fields
-form pooled frames; do not introduce an idle redraw loop. Surface undo/redo history
-is limited to 24 entries and 4 MiB; saved setups are sparse surfaces/settings and
-start new runs, never pretend to resume a thermal checkpoint.
-
-The interface has a native flat map and nonmodal inspector. Keep the main page a
-fixed viewport dashboard with no document or nested panel scrolling. Advanced
-settings and climate context use native dialogs. Compact viewports reuse the same
-paint-control DOM in a dialog, rather than cloning inputs or adding a layout loop.
-Only oversized dialogs may scroll; retain access to every control and CSV history
-when short windows omit the chart. The model diagram is a native SVG in
-`assets/images/reflect-model.svg`, with component attribution links.
-
-## Hourly radiation and integration
-
-Radiation uses each tile's latitude, longitude and hourly midpoint zenith angle.
-Greenwich solar noon is fixed at 12 UTC (no equation of time); direct sunlight is
-zero on the night side, and area-weighted incoming power is corrected to S/4.
-Evaluate learned albedo black-sky kernels at that angle and clamp after mixing direct/diffuse
-power. Use the bounded 4097-point wind-specific Jin lookup, retaining only
-reference and current wind tables. Earth-coordinate shader/fallback lighting must
-use the same subsolar point; annual camera spin is decorative.
-
-Use integer elapsed hours and derive elapsed days. Hourly FaIR transitions and
-regional exponential decay are cached. Integrate all model hours even at fast
-playback: one request in flight, at most 192 requested hours, a 32 ms worker budget
-checked after each complete hour, and explicit completed-hour acknowledgements.
-Carry remaining requested hours forward; cap wall-clock demand rather than
-skipping physics. Automatic batches stop at the next multiple of 24 elapsed
-hours. Between output boundaries send only a completed-hour acknowledgement;
-avoid diagnostics, frame packing, texture/graph/inspector updates and rendering.
-Publish full endpoint snapshots every 24 hours, with immediate exceptions for
-pause, edits, inspection, export and manual hour stepping. CSV must request fresh
-state rather than exporting the last daily output. Keep monthly
-scalar history and an 8766-value annual flux ring, not per-cell hour histories.
-
-Startup uses 48 seasonal samples with 24 hourly solar phases, reusing daily-mean
-scratch storage, plus an approximate periodic startup-day thermal perturbation.
-This is not a full annual hourly periodic solution or historical calibration.
-Slower devices may take longer than the playback target. The +1 hour button and
-slow playback must retain the same hourly physics. Do not run the cancelled
-offline simulations without a new request.
-
-Automatic viewing rotation advances only on full outputs. Coalesce automatic
-scene draws with a 34 ms minimum gap, independently of physics requests. Do not
-make the worker wait after every daily output. Keep all daily diagnostics even
-when redundant scene draws are coalesced; explicit interactions draw immediately.
-Use the evenly lit editing view for Paint/Restore/Inspect, preserving physical
-hourly illumination in the model. Rotate retains day/night shading.
-
-The optional `scatter.wasm` helper uses the same Float64 finite-volume operator
-and stable substep count as the JavaScript fallback. It compiles the bilateral
-graph into CSR rows; summation order can differ at roundoff level. Its fixed heap
-replaces the old graph arrays and reuses two work planes. Preserve JS fallback
-when module loading/setup fails. WABT 1.0.39 is an offline build tool, never a
-runtime dependency. Keep source and rebuild instructions beside the tiny binary.
-
-Physical/albedo surface edits reuse the matched control's illumination and update
-only changed reflection cells. Track local scattering separately: those changes
-must retain the full Gaussian solve because they affect neighbouring cells.
-Undo, restoration and saved surfaces must update both change sets correctly.
-Daily snapshots sample the same UTC hour and cannot show the daily terminator
-sweep; explain this and retain immediate +1 hour stepping.
+`scripts/REFLECT.md`: equations, caveats, provenance, memory limits and WASM build.
+`scripts/REFLECT_NEXT.md`: progress/remaining work; `scripts/REFLECT_TERRAIN.md`: legacy terrain.
+Main files: `_pages/reflect.html`, `assets/css/reflect-globe.css`, `globe-*.mjs` here.
+**Cancelled offline simulations require a fresh user request before resuming.**
