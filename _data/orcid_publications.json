@@ -21,6 +21,32 @@
   ],
   "works": [
     {
+      "put_code": 230783557,
+      "title": "Supplementary material to \"LandSyMM-IMOGEN v1.0: a coupled land-system and climate-emulator framework for tracing land-management greenhouse-gas emissions through climate to ecosystem responses\"",
+      "type": "preprint",
+      "category": "other",
+      "label": "Supplementary material",
+      "year": "2026",
+      "sort_date": "2026-10-21",
+      "venue": "",
+      "doi": "10.5194/egusphere-2026-5230-supplement",
+      "url": "https://doi.org/10.5194/egusphere-2026-5230-supplement",
+      "orcid_url": "https://orcid.org/0000-0003-4750-9923"
+    },
+    {
+      "put_code": 230783555,
+      "title": "LandSyMM-IMOGEN v1.0: a coupled land-system and climate-emulator framework for tracing land-management greenhouse-gas emissions through climate to ecosystem responses",
+      "type": "preprint",
+      "category": "preprints",
+      "label": "Preprint",
+      "year": "2026",
+      "sort_date": "2026-10-21",
+      "venue": "",
+      "doi": "10.5194/egusphere-2026-5230",
+      "url": "https://doi.org/10.5194/egusphere-2026-5230",
+      "orcid_url": "https://orcid.org/0000-0003-4750-9923"
+    },
+    {
       "put_code": 225564031,
       "title": "Supplementary material to \"Sea Level Emulator Intercomparison Project (SLEIP) Phase 1: Assessing emulated multi-century global mean sea level projections\"",
       "type": "preprint",
